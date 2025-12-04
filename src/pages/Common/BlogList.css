@@ -1,0 +1,128 @@
+.blog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 2em;
+}
+
+.blog-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+  transition: all 0.3s ease;
+}
+
+.blog-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.blog-image {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.blog-card:hover .blog-image {
+  transform: scale(1.05);
+}
+
+.blog-content {
+  padding: 1.5em;
+}
+
+.blog-tags {
+  display: flex;
+  gap: 0.5em;
+  flex-wrap: wrap;
+  margin-bottom: 1em;
+}
+
+.tag {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 0.35em 0.75em;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: 500;
+}
+
+.blog-content h2 {
+  margin: 0 0 0.75em 0;
+  color: var(--text-dark);
+  font-size: 1.4em;
+  line-height: 1.3;
+  transition: color 0.3s ease;
+}
+
+.blog-content a:hover h2 {
+  color: var(--primary-color);
+}
+
+.blog-excerpt {
+  color: var(--text-light);
+  line-height: 1.6;
+  margin-bottom: 1.5em;
+}
+
+.blog-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1em;
+  border-top: 1px solid var(--border-color);
+}
+
+.author-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+}
+
+.author-info img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.author-info strong {
+  display: block;
+  color: var(--text-dark);
+  font-size: 0.9em;
+  margin-bottom: 0.25em;
+}
+
+.date {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  color: var(--text-light);
+  font-size: 0.85em;
+}
+
+.blog-stats {
+  display: flex;
+  gap: 1em;
+}
+
+.blog-stats span {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  color: var(--text-light);
+  font-size: 0.9em;
+}
+
+@media (max-width: 768px) {
+  .blog-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .blog-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1em;
+  }
+}

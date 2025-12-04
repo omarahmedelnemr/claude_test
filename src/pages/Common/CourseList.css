@@ -1,0 +1,182 @@
+.page-header {
+  text-align: center;
+  margin-bottom: 3em;
+}
+
+.page-header h1 {
+  margin-bottom: 0.5em;
+  color: var(--text-dark);
+}
+
+.page-header p {
+  color: var(--text-light);
+  font-size: 1.1em;
+}
+
+.filters-section {
+  background: white;
+  padding: 1.5em;
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  margin-bottom: 2em;
+  display: flex;
+  gap: 1em;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.search-box {
+  flex: 1;
+  min-width: 250px;
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  padding: 0.75em 1em;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: #f9fafb;
+}
+
+.search-box input {
+  border: none;
+  background: transparent;
+  padding: 0;
+  width: 100%;
+}
+
+.search-box input:focus {
+  outline: none;
+  border: none;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+}
+
+.filter-group select {
+  width: auto;
+  min-width: 150px;
+}
+
+.results-info {
+  margin-bottom: 1.5em;
+  color: var(--text-light);
+}
+
+.category-badge {
+  background-color: #e3f2fd;
+  color: #2196f3;
+  padding: 0.35em 0.75em;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+.level-badge {
+  background-color: #f3e5f5;
+  color: #9c27b0;
+  padding: 0.35em 0.75em;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+.course-meta {
+  display: flex;
+  gap: 0.5em;
+  margin-bottom: 0.75em;
+}
+
+.teacher-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin: 1em 0;
+  padding: 0.75em 0;
+  border-top: 1px solid var(--border-color);
+}
+
+.teacher-info img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.teacher-info span {
+  font-size: 0.95em;
+  color: var(--text-dark);
+  font-weight: 500;
+}
+
+.course-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1em;
+  padding-bottom: 1em;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.course-stats > div {
+  display: flex;
+  gap: 1em;
+  align-items: center;
+}
+
+.rating {
+  color: #ff9800;
+  font-weight: 500;
+  font-size: 0.95em;
+}
+
+.students {
+  color: var(--text-light);
+  font-size: 0.9em;
+}
+
+.price {
+  font-size: 1.5em;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.enroll-btn {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 0.75em;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background-color 0.3s ease;
+}
+
+.enroll-btn:hover {
+  background-color: var(--primary-dark);
+  color: white;
+}
+
+@media (max-width: 768px) {
+  .filters-section {
+    flex-direction: column;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+
+  .filter-group {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .filter-group select {
+    flex: 1;
+    min-width: 120px;
+  }
+}

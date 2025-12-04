@@ -1,0 +1,162 @@
+.teachers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+  gap: 2em;
+}
+
+.teacher-card {
+  background: white;
+  border-radius: 12px;
+  padding: 2em;
+  box-shadow: var(--card-shadow);
+  transition: all 0.3s ease;
+}
+
+.teacher-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.teacher-header {
+  display: flex;
+  gap: 1.5em;
+  margin-bottom: 1.5em;
+  padding-bottom: 1.5em;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.teacher-header img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.teacher-info h2 {
+  margin: 0 0 0.5em 0;
+  color: var(--text-dark);
+}
+
+.teacher-bio {
+  color: var(--text-light);
+  margin: 0 0 1em 0;
+  line-height: 1.6;
+}
+
+.teacher-expertise {
+  display: flex;
+  gap: 0.5em;
+  flex-wrap: wrap;
+}
+
+.skill-tag {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 0.35em 0.75em;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+.teacher-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1em;
+  margin-bottom: 1.5em;
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  padding: 1em;
+  background-color: #f9fafb;
+  border-radius: 8px;
+}
+
+.stat div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+}
+
+.stat strong {
+  font-size: 1.5em;
+  color: var(--text-dark);
+}
+
+.stat span {
+  font-size: 0.85em;
+  color: var(--text-light);
+}
+
+.teacher-courses h4 {
+  margin: 0 0 1em 0;
+  color: var(--text-dark);
+}
+
+.courses-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.mini-course-card {
+  display: flex;
+  gap: 1em;
+  padding: 1em;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.mini-course-card:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(42, 143, 155, 0.1);
+}
+
+.mini-course-card img {
+  width: 80px;
+  height: 60px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.mini-course-card h5 {
+  margin: 0 0 0.5em 0;
+  color: var(--text-dark);
+  font-size: 0.95em;
+}
+
+.mini-course-meta {
+  display: flex;
+  gap: 1em;
+  font-size: 0.9em;
+  color: var(--text-light);
+}
+
+@media (max-width: 768px) {
+  .teachers-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .teacher-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .mini-course-card {
+    flex-direction: column;
+  }
+
+  .mini-course-card img {
+    width: 100%;
+    height: 120px;
+  }
+}

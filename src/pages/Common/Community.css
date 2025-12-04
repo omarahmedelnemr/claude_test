@@ -1,0 +1,270 @@
+.community-page {
+  max-width: 1200px;
+}
+
+.community-content {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 2em;
+}
+
+.posts-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5em;
+}
+
+.create-post {
+  padding: 1.5em;
+}
+
+.create-post-header {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  margin-bottom: 1em;
+}
+
+.create-post-header img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.create-post-header h3 {
+  margin: 0;
+  color: var(--text-dark);
+  font-size: 1em;
+}
+
+.create-post form {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.image-input {
+  margin-top: -0.5em;
+}
+
+.create-post-actions {
+  display: flex;
+  gap: 1em;
+  justify-content: flex-end;
+}
+
+.create-post-actions button {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.posts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5em;
+}
+
+.post-card {
+  padding: 1.5em;
+}
+
+.post-header {
+  display: flex;
+  gap: 1em;
+  margin-bottom: 1em;
+}
+
+.post-header img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.post-header h4 {
+  margin: 0;
+  color: var(--text-dark);
+  font-size: 1em;
+}
+
+.post-role {
+  display: inline-block;
+  background-color: var(--primary-color);
+  color: white;
+  padding: 0.2em 0.6em;
+  border-radius: 12px;
+  font-size: 0.75em;
+  text-transform: capitalize;
+  margin-left: 0.5em;
+}
+
+.post-time {
+  display: block;
+  color: var(--text-light);
+  font-size: 0.85em;
+  margin-top: 0.25em;
+}
+
+.post-content {
+  margin-bottom: 1em;
+}
+
+.post-content p {
+  color: var(--text-dark);
+  line-height: 1.6;
+  margin-bottom: 1em;
+}
+
+.post-image {
+  width: 100%;
+  max-height: 400px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-top: 1em;
+}
+
+.post-actions {
+  display: flex;
+  gap: 1em;
+  padding-top: 1em;
+  border-top: 1px solid var(--border-color);
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.5em 1em;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-light);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.action-btn:hover {
+  background-color: var(--secondary-color);
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.comments-section {
+  margin-top: 1em;
+  padding-top: 1em;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.comment {
+  display: flex;
+  gap: 0.75em;
+}
+
+.comment img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.comment-content {
+  flex: 1;
+  background-color: #f9fafb;
+  padding: 0.75em 1em;
+  border-radius: 8px;
+}
+
+.comment-content strong {
+  color: var(--text-dark);
+  font-size: 0.9em;
+}
+
+.comment-content p {
+  margin: 0.25em 0;
+  color: var(--text-dark);
+  font-size: 0.9em;
+}
+
+.comment-time {
+  color: var(--text-light);
+  font-size: 0.8em;
+}
+
+.community-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5em;
+}
+
+.guidelines-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.guidelines-list li {
+  padding: 0.75em 0;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-dark);
+  font-size: 0.9em;
+}
+
+.guidelines-list li:last-child {
+  border-bottom: none;
+}
+
+.active-members {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75em;
+}
+
+.member-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  padding: 0.75em;
+  border-radius: 8px;
+  transition: background-color 0.3s ease;
+}
+
+.member-item:hover {
+  background-color: #f9fafb;
+}
+
+.member-item img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.member-item strong {
+  display: block;
+  color: var(--text-dark);
+  font-size: 0.9em;
+}
+
+.member-item span {
+  display: block;
+  color: var(--text-light);
+  font-size: 0.8em;
+  text-transform: capitalize;
+}
+
+@media (max-width: 1024px) {
+  .community-content {
+    grid-template-columns: 1fr;
+  }
+
+  .community-sidebar {
+    order: -1;
+  }
+}
