@@ -16,6 +16,9 @@ import QASection from './pages/Common/QASection';
 import Profile from './pages/Common/Profile';
 import MyCourses from './pages/Teacher/MyCourses';
 import EnrolledCourses from './pages/Student/EnrolledCourses';
+import LectureSchedule from './pages/Teacher/LectureSchedule';
+import AdvancedAnalytics from './pages/Teacher/AdvancedAnalytics';
+import Messaging from './pages/Teacher/Messaging';
 import Layout from './components/Common/Layout';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -71,6 +74,33 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={['teacher']}>
               <MyCourses />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="schedule"
+          element={
+            <ProtectedRoute allowedRoles={['teacher']}>
+              <LectureSchedule />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="analytics"
+          element={
+            <ProtectedRoute allowedRoles={['teacher']}>
+              <AdvancedAnalytics />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="messages"
+          element={
+            <ProtectedRoute allowedRoles={['teacher']}>
+              <Messaging />
             </ProtectedRoute>
           }
         />

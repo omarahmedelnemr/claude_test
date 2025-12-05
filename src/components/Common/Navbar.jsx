@@ -11,7 +11,10 @@ import {
   LogOut,
   Layout,
   BookMarked,
-  Home
+  Home,
+  Calendar,
+  BarChart3,
+  Mail
 } from 'lucide-react';
 import './Navbar.css';
 
@@ -65,10 +68,24 @@ const Navbar = () => {
         </Link>
 
         {currentUser?.role === 'teacher' && (
-          <Link to="/my-courses" className="nav-link">
-            <BookMarked size={20} />
-            <span>My Courses</span>
-          </Link>
+          <>
+            <Link to="/my-courses" className="nav-link">
+              <BookMarked size={20} />
+              <span>My Courses</span>
+            </Link>
+            <Link to="/schedule" className="nav-link">
+              <Calendar size={20} />
+              <span>Schedule</span>
+            </Link>
+            <Link to="/analytics" className="nav-link">
+              <BarChart3 size={20} />
+              <span>Analytics</span>
+            </Link>
+            <Link to="/messages" className="nav-link">
+              <Mail size={20} />
+              <span>Messages</span>
+            </Link>
+          </>
         )}
 
         {currentUser?.role === 'student' && (
