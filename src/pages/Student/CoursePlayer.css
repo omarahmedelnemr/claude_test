@@ -1,5 +1,7 @@
 .course-player-page {
   margin-top: -2em;
+  margin-left: -2em;
+  margin-right: -2em;
   background-color: #1a1a1a;
   min-height: 100vh;
   padding: 0;
@@ -17,8 +19,8 @@
 
 .content-viewer {
   position: sticky;
-  top: 70px;
-  height: calc(100vh - 70px);
+  top: 0;
+  height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;

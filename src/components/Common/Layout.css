@@ -6,12 +6,20 @@
 
 .main-content {
   flex: 1;
-  padding: 2em 0;
-  min-height: calc(100vh - 80px);
+  padding: 2em;
+  margin-left: 260px;
+  min-height: 100vh;
 }
 
 @media (max-width: 768px) {
   .main-content {
-    padding: 1em 0;
+    padding: 1em;
+    margin-left: 70px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-content {
+    margin-left: 60px;
   }
 }

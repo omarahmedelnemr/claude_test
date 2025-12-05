@@ -10,7 +10,8 @@ import {
   User,
   LogOut,
   Layout,
-  BookMarked
+  BookMarked,
+  Home
 } from 'lucide-react';
 import './Navbar.css';
 
@@ -24,79 +25,88 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="navbar">
-      <div className="navbar-container">
-        <Link to="/" className="navbar-brand">
+    <nav className="sidebar">
+      <div className="sidebar-header">
+        <Link to="/" className="sidebar-brand">
           <GraduationCap size={32} />
           <span>EduPlatform</span>
         </Link>
+      </div>
 
-        <div className="navbar-menu">
-          <Link to="/courses" className="nav-link">
-            <BookOpen size={20} />
-            <span>Courses</span>
+      <div className="sidebar-menu">
+        <Link to="/" className="nav-link">
+          <Home size={20} />
+          <span>Dashboard</span>
+        </Link>
+
+        <Link to="/courses" className="nav-link">
+          <BookOpen size={20} />
+          <span>Courses</span>
+        </Link>
+
+        <Link to="/teachers" className="nav-link">
+          <Users size={20} />
+          <span>Teachers</span>
+        </Link>
+
+        <Link to="/community" className="nav-link">
+          <MessageSquare size={20} />
+          <span>Community</span>
+        </Link>
+
+        <Link to="/blog" className="nav-link">
+          <FileText size={20} />
+          <span>Blog</span>
+        </Link>
+
+        <Link to="/qa" className="nav-link">
+          <HelpCircle size={20} />
+          <span>Q&A</span>
+        </Link>
+
+        {currentUser?.role === 'teacher' && (
+          <Link to="/my-courses" className="nav-link">
+            <BookMarked size={20} />
+            <span>My Courses</span>
           </Link>
+        )}
 
-          <Link to="/teachers" className="nav-link">
-            <Users size={20} />
-            <span>Teachers</span>
+        {currentUser?.role === 'student' && (
+          <Link to="/enrolled-courses" className="nav-link">
+            <BookMarked size={20} />
+            <span>My Learning</span>
           </Link>
+        )}
 
-          <Link to="/community" className="nav-link">
-            <MessageSquare size={20} />
-            <span>Community</span>
+        {currentUser?.role === 'admin' && (
+          <Link to="/admin" className="nav-link">
+            <Layout size={20} />
+            <span>Admin Panel</span>
           </Link>
+        )}
+      </div>
 
-          <Link to="/blog" className="nav-link">
-            <FileText size={20} />
-            <span>Blog</span>
-          </Link>
-
-          <Link to="/qa" className="nav-link">
-            <HelpCircle size={20} />
-            <span>Q&A</span>
-          </Link>
-
-          {currentUser?.role === 'teacher' && (
-            <Link to="/my-courses" className="nav-link">
-              <BookMarked size={20} />
-              <span>My Courses</span>
+      <div className="sidebar-footer">
+        {currentUser ? (
+          <>
+            <Link to="/profile" className="user-profile">
+              <img src={currentUser.avatar} alt={currentUser.name} />
+              <div className="user-info">
+                <span className="user-name">{currentUser.name}</span>
+                <span className="user-role">{currentUser.role}</span>
+              </div>
             </Link>
-          )}
-
-          {currentUser?.role === 'student' && (
-            <Link to="/enrolled-courses" className="nav-link">
-              <BookMarked size={20} />
-              <span>My Learning</span>
-            </Link>
-          )}
-
-          {currentUser?.role === 'admin' && (
-            <Link to="/admin" className="nav-link">
-              <Layout size={20} />
-              <span>Dashboard</span>
-            </Link>
-          )}
-        </div>
-
-        <div className="navbar-user">
-          {currentUser ? (
-            <>
-              <Link to="/profile" className="user-profile">
-                <img src={currentUser.avatar} alt={currentUser.name} />
-                <span>{currentUser.name}</span>
-              </Link>
-              <button onClick={handleLogout} className="logout-btn">
-                <LogOut size={20} />
-              </button>
-            </>
-          ) : (
-            <Link to="/login" className="login-btn">
-              <User size={20} />
-              <span>Login</span>
-            </Link>
-          )}
-        </div>
+            <button onClick={handleLogout} className="logout-btn">
+              <LogOut size={20} />
+              <span>Logout</span>
+            </button>
+          </>
+        ) : (
+          <Link to="/login" className="login-btn">
+            <User size={20} />
+            <span>Login</span>
+          </Link>
+        )}
       </div>
     </nav>
   );
