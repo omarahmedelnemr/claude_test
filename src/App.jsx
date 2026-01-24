@@ -37,11 +37,10 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
 const AppRoutes = () => {
   const { currentUser } = useAuth();
-
   const getDashboard = () => {
     if (!currentUser) return <Navigate to="/login" replace />;
 
-    switch (currentUser.role) {
+    switch (currentUser.user?.role) {
       case 'admin':
         return <AdminDashboard />;
       case 'teacher':

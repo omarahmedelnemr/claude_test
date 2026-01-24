@@ -1,32 +1,83 @@
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { courses, users } from '../../data/mockData';
-import { Clock, Users as UsersIcon, BarChart, Star, BookOpen } from 'lucide-react';
+import courseService from '../../services/courseService';
+import { Clock, Users as UsersIcon, BarChart, Star, BookOpen, Loader2 } from 'lucide-react';
 import './CourseDetail.css';
 
 const CourseDetail = () => {
   const { id } = useParams();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const [course, setCourse] = useState(null);
+  const [teacher, setTeacher] = useState(null);
+  const [lectures, setLectures] = useState([]);
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [enrolling, setEnrolling] = useState(false);
+  const [error, setError] = useState('');
 
-  const course = courses.find(c => c.id === parseInt(id));
-  const teacher = users.find(u => u.id === course?.teacherId);
+  useEffect(() => {
+    if (id) {
+      fetchCourseDetails();
+    }
+  }, [id, currentUser?.id]);
 
-  if (!course) {
-    return (
-      <div className="container">
-        <div className="empty-state">
-          <h2>Course not found</h2>
-          <p>The course you're looking for doesn't exist.</p>
-        </div>
-      </div>
-    );
-  }
+  const fetchCourseDetails = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      // Fetch course details
+      const courseData = await courseService.getCourseDetails(id);
+      setCourse(courseData);
+      
+      // Fetch teacher info if available
+      if (courseData.teacherID || courseData.teacher?.id) {
+        try {
+          const teacherData = await courseService.getTeacherProfile(
+            courseData.teacherID || courseData.teacher?.id
+          );
+          setTeacher(teacherData);
+        } catch (err) {
+          console.error('Error fetching teacher:', err);
+        }
+      } else if (courseData.teacher) {
+        setTeacher(courseData.teacher);
+      }
 
-  const isEnrolled = currentUser?.enrolledCourses?.includes(course.id);
-  const isTeacher = currentUser?.id === course.teacherId;
+      // Fetch lectures
+      try {
+        const lecturesData = await courseService.getCourseLectures(id);
+        setLectures(Array.isArray(lecturesData) ? lecturesData : lecturesData.lectures || []);
+      } catch (err) {
+        console.error('Error fetching lectures:', err);
+      }
 
-  const handleEnroll = () => {
+      // Check enrollment status
+      if (currentUser?.id && currentUser?.role === 'student') {
+        try {
+          const enrollments = await courseService.getStudentEnrollments({
+            studentID: currentUser.id,
+            limit: 100,
+          });
+          const enrollment = Array.isArray(enrollments) 
+            ? enrollments.find(e => (e.courseID || e.course?.id || e.courseID) === id)
+            : (enrollments.enrollments || []).find(e => (e.courseID || e.course?.id) === id);
+          setIsEnrolled(!!enrollment);
+        } catch (err) {
+          console.error('Error checking enrollment:', err);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching course:', err);
+      setError(err.message || 'Failed to load course details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEnroll = async () => {
     if (!currentUser) {
       navigate('/login');
       return;
@@ -37,44 +88,81 @@ const CourseDetail = () => {
       return;
     }
 
-    if (!currentUser.enrolledCourses) {
-      currentUser.enrolledCourses = [];
+    try {
+      setEnrolling(true);
+      await courseService.enrollInCourse(id, currentUser.id);
+      setIsEnrolled(true);
+      alert('Successfully enrolled in the course!');
+      navigate('/enrolled-courses');
+    } catch (err) {
+      alert(err.message || 'Failed to enroll in course');
+      console.error('Enrollment error:', err);
+    } finally {
+      setEnrolling(false);
     }
-
-    currentUser.enrolledCourses.push(course.id);
-    alert('Successfully enrolled in the course!');
-    navigate('/enrolled-courses');
   };
+
+  if (loading) {
+    return (
+      <div className="container">
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+          <Loader2 size={48} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
+        </div>
+      </div>
+    );
+  }
+
+  if (!course || error) {
+    return (
+      <div className="container">
+        <div className="empty-state">
+          <h2>{error ? 'Error loading course' : 'Course not found'}</h2>
+          <p>{error || "The course you're looking for doesn't exist."}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const isTeacher = currentUser?.id === (course.teacherID || course.teacher?.id);
 
   return (
     <div className="course-detail-page">
-      <div className="course-hero" style={{ backgroundImage: `url(${course.thumbnail})` }}>
+      <div 
+        className="course-hero" 
+        style={{ 
+          backgroundImage: `url(${course.thumbnailUrl || course.thumbnail || 'https://via.placeholder.com/1200x400?text=Course'})` 
+        }}
+      >
         <div className="hero-overlay">
           <div className="container">
             <div className="hero-content">
               <div className="course-badges">
-                <span className="badge">{course.category}</span>
-                <span className="badge">{course.level}</span>
+                {course.subject && <span className="badge">{course.subject}</span>}
+                {course.status && course.status !== 'published' && (
+                  <span className="badge">{course.status}</span>
+                )}
               </div>
               <h1>{course.title}</h1>
-              <p className="course-subtitle">{course.description}</p>
+              <p className="course-subtitle">{course.description || 'No description available'}</p>
               <div className="course-meta-info">
-                <div className="meta-item">
-                  <Star size={18} />
-                  <span>{course.rating} rating</span>
-                </div>
-                <div className="meta-item">
-                  <UsersIcon size={18} />
-                  <span>{course.studentsEnrolled.toLocaleString()} students</span>
-                </div>
-                <div className="meta-item">
-                  <Clock size={18} />
-                  <span>{course.duration}</span>
-                </div>
-                <div className="meta-item">
-                  <BarChart size={18} />
-                  <span>{course.level}</span>
-                </div>
+                {course.rating && (
+                  <div className="meta-item">
+                    <Star size={18} />
+                    <span>{course.rating.toFixed(1)} rating</span>
+                  </div>
+                )}
+                {course.enrolledCount !== undefined && (
+                  <div className="meta-item">
+                    <UsersIcon size={18} />
+                    <span>{course.enrolledCount.toLocaleString()} students</span>
+                  </div>
+                )}
+                {lectures.length > 0 && (
+                  <div className="meta-item">
+                    <BookOpen size={18} />
+                    <span>{lectures.length} lectures</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -86,67 +174,75 @@ const CourseDetail = () => {
           <div className="course-main">
             <div className="card">
               <h2>About this course</h2>
-              <p>{course.description}</p>
-              <p>
-                This comprehensive course will take you from {course.level.toLowerCase()} to advanced levels.
-                You'll learn through hands-on projects and real-world examples.
-              </p>
+              <p>{course.description || 'No description available'}</p>
             </div>
 
-            <div className="card">
-              <h2>Course Content</h2>
-              <div className="lectures-list">
-                {course.lectures.map((lecture, index) => (
-                  <div key={lecture.id} className="lecture-item">
-                    <div className="lecture-header">
-                      <BookOpen size={20} color="var(--primary-color)" />
-                      <div>
-                        <h4>Lecture {index + 1}: {lecture.title}</h4>
-                        <p>{lecture.duration}</p>
+            {lectures.length > 0 && (
+              <div className="card">
+                <h2>Course Content</h2>
+                <div className="lectures-list">
+                  {lectures.map((lecture, index) => (
+                    <div key={lecture.id || lecture.lectureID} className="lecture-item">
+                      <div className="lecture-header">
+                        <BookOpen size={20} color="var(--primary-color)" />
+                        <div>
+                          <h4>Lecture {index + 1}: {lecture.title}</h4>
+                          {lecture.description && <p>{lecture.description}</p>}
+                        </div>
                       </div>
+                      {lecture.contentCount > 0 && (
+                        <div className="lecture-content-types">
+                          <span className="content-type-badge">
+                            {lecture.contentCount} items
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    <div className="lecture-content-types">
-                      {lecture.content.map((item, idx) => (
-                        <span key={idx} className="content-type-badge">
-                          {item.type === 'video' && '🎥 Video'}
-                          {item.type === 'pdf' && '📄 PDF'}
-                          {item.type === 'quiz' && '📝 Quiz'}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="card">
-              <h2>Instructor</h2>
-              <div className="instructor-card">
-                <img src={teacher?.avatar} alt={teacher?.name} />
-                <div>
-                  <h3>{teacher?.name}</h3>
-                  <p>{teacher?.bio}</p>
-                  {teacher?.expertise && (
-                    <div className="expertise-tags">
-                      {teacher.expertise.map((skill, idx) => (
-                        <span key={idx} className="expertise-tag">{skill}</span>
-                      ))}
-                    </div>
-                  )}
+                  ))}
                 </div>
               </div>
-            </div>
+            )}
+
+            {teacher && (
+              <div className="card">
+                <h2>Instructor</h2>
+                <div className="instructor-card">
+                  <img 
+                    src={teacher.profileImage || teacher.avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(teacher.name || 'Teacher')} 
+                    alt={teacher.name} 
+                  />
+                  <div>
+                    <h3>{teacher.name}</h3>
+                    {teacher.description && <p>{teacher.description}</p>}
+                    {teacher.bio && <p>{teacher.bio}</p>}
+                    {teacher.tags && teacher.tags.length > 0 && (
+                      <div className="expertise-tags">
+                        {teacher.tags.map((tag, idx) => (
+                          <span key={tag.id || idx} className="expertise-tag">
+                            {typeof tag === 'string' ? tag : tag.tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="course-sidebar">
             <div className="card sticky-card">
               <div className="price-section">
-                <h2>${course.price}</h2>
+                <h2>
+                  {course.price !== undefined 
+                    ? `${course.currency || '$'}${course.price}` 
+                    : 'Free'}
+                </h2>
               </div>
 
               {isEnrolled ? (
                 <button
-                  onClick={() => navigate(`/course-player/${course.id}`)}
+                  onClick={() => navigate(`/course-player/${id}`)}
                   className="enroll-button"
                 >
                   Continue Learning
@@ -156,15 +252,21 @@ const CourseDetail = () => {
                   Your Course
                 </button>
               ) : (
-                <button onClick={handleEnroll} className="enroll-button">
-                  Enroll Now
+                <button 
+                  onClick={handleEnroll} 
+                  className="enroll-button"
+                  disabled={enrolling}
+                >
+                  {enrolling ? 'Enrolling...' : 'Enroll Now'}
                 </button>
               )}
 
               <div className="sidebar-info">
                 <h3>This course includes:</h3>
                 <ul>
-                  <li>📹 {course.lectures.length} video lectures</li>
+                  {lectures.length > 0 && (
+                    <li>📹 {lectures.length} lectures</li>
+                  )}
                   <li>📄 Downloadable resources</li>
                   <li>📝 Quizzes and assignments</li>
                   <li>🏆 Certificate of completion</li>

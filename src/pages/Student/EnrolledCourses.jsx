@@ -1,22 +1,53 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { courses, users, studentProgress } from '../../data/mockData';
-import { BookOpen, Play, Award } from 'lucide-react';
+import courseService from '../../services/courseService';
+import { BookOpen, Play, Award, Loader2 } from 'lucide-react';
 import '../Student/StudentDashboard.css';
 import './EnrolledCourses.css';
 
 const EnrolledCourses = () => {
   const { currentUser } = useAuth();
+  const [enrolledCourses, setEnrolledCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const enrolledCourses = courses.filter(course =>
-    currentUser.enrolledCourses?.includes(course.id)
-  );
+  useEffect(() => {
+    if (currentUser?.id) {
+      fetchEnrolledCourses();
+    }
+  }, [currentUser?.id]);
 
-  const progress = studentProgress.filter(p => p.studentId === currentUser.id);
-
-  const getCourseProgress = (courseId) => {
-    return progress.find(p => p.courseId === courseId);
+  const fetchEnrolledCourses = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const response = await courseService.getStudentEnrollments({
+        studentID: currentUser.id,
+        status: 'enrolled',
+        limit: 50,
+        loadBlock: 1,
+      });
+      
+      const enrollments = Array.isArray(response) ? response : response.enrollments || response.data || [];
+      setEnrolledCourses(enrollments);
+    } catch (err) {
+      console.error('Error fetching enrollments:', err);
+      setError(err.message || 'Failed to load courses');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="container">
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+          <Loader2 size={48} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container">
@@ -25,61 +56,64 @@ const EnrolledCourses = () => {
         <p>Continue where you left off and track your progress</p>
       </div>
 
+      {error && (
+        <div className="error-message" style={{ margin: '1em 0', padding: '1em', background: '#fee', color: '#c33', borderRadius: '4px' }}>
+          {error}
+        </div>
+      )}
+
       {enrolledCourses.length > 0 ? (
         <div className="enrolled-courses-grid">
-          {enrolledCourses.map(course => {
-            const teacher = users.find(u => u.id === course.teacherId);
-            const courseProgress = getCourseProgress(course.id);
-            const completedLectures = courseProgress?.completedLectures?.length || 0;
-            const totalLectures = course.lectures.length;
-            const avgScore = courseProgress?.quizScores?.length > 0
-              ? Math.round(
-                  courseProgress.quizScores.reduce((sum, q) => sum + q.score, 0) /
-                  courseProgress.quizScores.length
-                )
-              : 0;
+          {enrolledCourses.map(enrollment => {
+            const course = enrollment.course || enrollment;
+            const teacher = course.teacher || {};
+            const progress = enrollment.progress || 0;
+            const courseId = course.id || course.courseID || enrollment.courseID;
+            const lectureCount = course.lectureCount || 0;
 
             return (
-              <div key={course.id} className="enrolled-course-card card">
+              <div key={courseId || enrollment.id} className="enrolled-course-card card">
                 <div className="course-image-wrapper">
-                  <img src={course.thumbnail} alt={course.title} />
+                  <img 
+                    src={course.thumbnailUrl || course.thumbnail || 'https://via.placeholder.com/400x225?text=Course'} 
+                    alt={course.title} 
+                  />
                   <div className="progress-overlay">
                     <div className="circular-progress">
-                      <span>{courseProgress?.progress || 0}%</span>
+                      <span>{progress}%</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="enrolled-course-content">
                   <h3>{course.title}</h3>
-                  <div className="teacher-mini">
-                    <img src={teacher?.avatar} alt={teacher?.name} />
-                    <span>{teacher?.name}</span>
-                  </div>
+                  {teacher.name && (
+                    <div className="teacher-mini">
+                      <img 
+                        src={teacher.profileImage || teacher.avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(teacher.name)} 
+                        alt={teacher.name} 
+                      />
+                      <span>{teacher.name}</span>
+                    </div>
+                  )}
 
                   <div className="course-progress-section">
                     <div className="progress-stats">
                       <div className="stat">
                         <BookOpen size={18} color="var(--primary-color)" />
-                        <span>{completedLectures}/{totalLectures} lectures</span>
+                        <span>{lectureCount} lectures</span>
                       </div>
-                      {avgScore > 0 && (
-                        <div className="stat">
-                          <Award size={18} color="#ff9800" />
-                          <span>{avgScore}% avg score</span>
-                        </div>
-                      )}
                     </div>
 
                     <div className="progress-bar">
                       <div
                         className="progress-fill"
-                        style={{ width: `${courseProgress?.progress || 0}%` }}
+                        style={{ width: `${progress}%` }}
                       ></div>
                     </div>
                   </div>
 
-                  <Link to={`/course-player/${course.id}`} className="continue-learning-btn">
+                  <Link to={`/course-player/${courseId}`} className="continue-learning-btn">
                     <Play size={18} />
                     Continue Learning
                   </Link>

@@ -1,38 +1,74 @@
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { courses, studentProgress } from '../../data/mockData';
-import { BookOpen, Clock, Award, TrendingUp } from 'lucide-react';
+import courseService from '../../services/courseService';
+import { BookOpen, Clock, Award, TrendingUp, Loader2 } from 'lucide-react';
 import './StudentDashboard.css';
 
 const StudentDashboard = () => {
   const { currentUser } = useAuth();
+  const [enrolledCourses, setEnrolledCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const enrolledCourses = courses.filter(course =>
-    currentUser.enrolledCourses?.includes(course.id)
-  );
+  useEffect(() => {
+    if (currentUser?.id) {
+      fetchEnrolledCourses();
+    }
+  }, [currentUser?.id]);
 
-  const progress = studentProgress.filter(p => p.studentId === currentUser.id);
+  const fetchEnrolledCourses = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const response = await courseService.getStudentEnrollments({
+        studentID: currentUser.id,
+        status: 'enrolled',
+        limit: 10,
+        loadBlock: 1,
+      });
+      
+      const enrollments = Array.isArray(response) ? response : response.enrollments || response.data || [];
+      setEnrolledCourses(enrollments);
+    } catch (err) {
+      console.error('Error fetching enrollments:', err);
+      setError(err.message || 'Failed to load courses');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const overallProgress = progress.length > 0
-    ? Math.round(progress.reduce((sum, p) => sum + p.progress, 0) / progress.length)
-    : 0;
-
-  const totalQuizzes = progress.reduce((sum, p) => sum + p.quizScores.length, 0);
-  const avgQuizScore = totalQuizzes > 0
+  // Calculate statistics from enrolled courses
+  const overallProgress = enrolledCourses.length > 0
     ? Math.round(
-        progress.reduce(
-          (sum, p) => sum + p.quizScores.reduce((s, q) => s + q.score, 0),
-          0
-        ) / totalQuizzes
+        enrolledCourses.reduce((sum, enrollment) => {
+          return sum + (enrollment.progress || enrollment.course?.progress || 0);
+        }, 0) / enrolledCourses.length
       )
     : 0;
+
+  if (loading) {
+    return (
+      <div className="container">
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+          <Loader2 size={48} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container">
       <div className="dashboard-header">
-        <h1>Welcome back, {currentUser.name}!</h1>
+        <h1>Welcome back, {currentUser?.name || 'Student'}!</h1>
         <p>Continue your learning journey</p>
       </div>
+
+      {error && (
+        <div className="error-message" style={{ margin: '1em 0', padding: '1em', background: '#fee', color: '#c33', borderRadius: '4px' }}>
+          {error}
+        </div>
+      )}
 
       <div className="stats-grid">
         <div className="stat-card">
@@ -60,8 +96,8 @@ const StudentDashboard = () => {
             <Award size={28} color="#ff9800" />
           </div>
           <div className="stat-info">
-            <h3>{avgQuizScore}%</h3>
-            <p>Average Quiz Score</p>
+            <h3>--</h3>
+            <p>Average Score</p>
           </div>
         </div>
 
@@ -70,8 +106,8 @@ const StudentDashboard = () => {
             <Clock size={28} color="#9c27b0" />
           </div>
           <div className="stat-info">
-            <h3>{totalQuizzes}</h3>
-            <p>Quizzes Completed</p>
+            <h3>--</h3>
+            <p>Completed</p>
           </div>
         </div>
       </div>
@@ -84,25 +120,33 @@ const StudentDashboard = () => {
 
         {enrolledCourses.length > 0 ? (
           <div className="course-grid">
-            {enrolledCourses.map(course => {
-              const courseProgress = progress.find(p => p.courseId === course.id);
+            {enrolledCourses.map(enrollment => {
+              const course = enrollment.course || enrollment;
+              const progress = enrollment.progress || 0;
+              const courseId = course.id || course.courseID || enrollment.courseID;
+              
               return (
-                <div key={course.id} className="course-card">
-                  <img src={course.thumbnail} alt={course.title} />
+                <div key={courseId || enrollment.id} className="course-card">
+                  <img 
+                    src={course.thumbnailUrl || course.thumbnail || 'https://via.placeholder.com/400x225?text=Course'} 
+                    alt={course.title} 
+                  />
                   <div className="course-content">
                     <h3>{course.title}</h3>
-                    <p className="course-description">{course.description}</p>
+                    <p className="course-description">
+                      {course.description || 'No description available'}
+                    </p>
                     <div className="progress-bar">
                       <div
                         className="progress-fill"
-                        style={{ width: `${courseProgress?.progress || 0}%` }}
+                        style={{ width: `${progress}%` }}
                       ></div>
                     </div>
                     <p className="progress-text">
-                      {courseProgress?.progress || 0}% Complete
+                      {progress}% Complete
                     </p>
                     <Link
-                      to={`/course-player/${course.id}`}
+                      to={`/course-player/${courseId}`}
                       className="continue-btn"
                     >
                       Continue Learning

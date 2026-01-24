@@ -11,11 +11,17 @@ const Signup = () => {
     password: '',
     confirmPassword: '',
     role: 'student',
-    bio: ''
+    birthDate: '',
+    gender: 'male',
+    title: '',
+    description: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signup } = useAuth();
+  const [showVerification, setShowVerification] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [verificationToken, setVerificationToken] = useState(null);
+  const { signup, sendConfirmationCode, checkConfirmationCode, verifyAccount } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -25,10 +31,11 @@ const Signup = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
+    // Validation
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -39,17 +46,77 @@ const Signup = () => {
       return;
     }
 
+    if (!formData.birthDate) {
+      setError('Please enter your birth date');
+      return;
+    }
+
+    if (formData.role === 'teacher' && !formData.title) {
+      setError('Please enter your professional title');
+      return;
+    }
+
     setLoading(true);
 
-    const { confirmPassword, ...userData } = formData;
-    const result = signup(userData);
+    try {
+      // TODO: Integrate Firebase Authentication first
+      // For now, using a placeholder token - Firebase integration needed
+      // The backend requires a Firebase token for signup
+      const firebaseToken = 'placeholder-token'; // Replace with actual Firebase token
+      
+      const { confirmPassword, ...userData } = formData;
+      const result = await signup(userData, formData.role, firebaseToken);
 
-    if (result.success) {
-      navigate('/');
-    } else {
-      setError(result.error);
+      if (result.success) {
+        if (result.requiresVerification) {
+          // Send confirmation code
+          const codeResult = await sendConfirmationCode(formData.email);
+          if (codeResult.success) {
+            setShowVerification(true);
+          } else {
+            setError(codeResult.error || 'Failed to send verification code');
+          }
+        } else {
+          navigate('/');
+        }
+      } else {
+        setError(result.error || 'Signup failed. Please try again.');
+      }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
+      console.error('Signup error:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
+  };
+
+  const handleVerification = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const result = await checkConfirmationCode(formData.email, verificationCode);
+      if (result.success) {
+        setVerificationToken(result.token);
+        // Verify account
+        const verifyResult = await verifyAccount(formData.email, result.token);
+        if (verifyResult.success) {
+          navigate('/login', { 
+            state: { message: 'Account verified successfully! Please login.' } 
+          });
+        } else {
+          setError(verifyResult.error || 'Account verification failed');
+        }
+      } else {
+        setError(result.error || 'Invalid verification code');
+      }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
+      console.error('Verification error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -101,20 +168,64 @@ const Signup = () => {
             >
               <option value="student">Student</option>
               <option value="teacher">Teacher</option>
+              <option value="parent">Parent</option>
             </select>
           </div>
 
           <div className="form-group">
-            <label htmlFor="bio">Bio (Optional)</label>
-            <textarea
-              id="bio"
-              name="bio"
-              value={formData.bio}
+            <label htmlFor="birthDate">Birth Date</label>
+            <input
+              type="date"
+              id="birthDate"
+              name="birthDate"
+              value={formData.birthDate}
               onChange={handleChange}
-              placeholder="Tell us about yourself"
-              rows="3"
+              required
             />
           </div>
+
+          <div className="form-group">
+            <label htmlFor="gender">Gender</label>
+            <select
+              id="gender"
+              name="gender"
+              value={formData.gender}
+              onChange={handleChange}
+              required
+            >
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+
+          {formData.role === 'teacher' && (
+            <>
+              <div className="form-group">
+                <label htmlFor="title">Professional Title</label>
+                <input
+                  type="text"
+                  id="title"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleChange}
+                  placeholder="e.g., Professor, Instructor"
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="description">Professional Description</label>
+                <textarea
+                  id="description"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  placeholder="Tell us about your teaching experience"
+                  rows="3"
+                  required
+                />
+              </div>
+            </>
+          )}
 
           <div className="form-group">
             <label htmlFor="password">Password</label>
@@ -146,6 +257,30 @@ const Signup = () => {
             {loading ? 'Creating Account...' : 'Sign Up'}
           </button>
         </form>
+
+        {showVerification && (
+          <div className="verification-section">
+            <h3>Verify Your Email</h3>
+            <p>We've sent a verification code to {formData.email}</p>
+            <form onSubmit={handleVerification} className="auth-form">
+              <div className="form-group">
+                <label htmlFor="verificationCode">Verification Code</label>
+                <input
+                  type="text"
+                  id="verificationCode"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value)}
+                  placeholder="Enter 4-digit code"
+                  maxLength="4"
+                  required
+                />
+              </div>
+              <button type="submit" disabled={loading} className="auth-button">
+                {loading ? 'Verifying...' : 'Verify'}
+              </button>
+            </form>
+          </div>
+        )}
 
         <div className="auth-footer">
           <p>

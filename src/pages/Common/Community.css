@@ -259,6 +259,272 @@
   text-transform: capitalize;
 }
 
+/* Loading States */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4em 2em;
+  color: var(--text-light);
+}
+
+.loading-container p {
+  margin-top: 1em;
+  font-size: 1.1em;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Error Banner */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 1em 1.5em;
+  border-radius: 8px;
+  margin-bottom: 1.5em;
+}
+
+.error-banner span {
+  flex: 1;
+}
+
+.error-banner button {
+  background: transparent;
+  border: none;
+  color: #dc2626;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.error-banner button:hover {
+  text-decoration: underline;
+}
+
+/* Community Filter */
+.community-filter {
+  display: flex;
+  gap: 0.5em;
+  flex-wrap: wrap;
+  margin-bottom: 1em;
+}
+
+.filter-btn {
+  padding: 0.5em 1em;
+  border: 1px solid var(--border-color);
+  background: white;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: all 0.3s ease;
+}
+
+.filter-btn:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.filter-btn.active {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+/* Create Post Options */
+.create-post-options {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  cursor: pointer;
+  font-size: 0.9em;
+  color: var(--text-light);
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* Post Community Badge */
+.post-community {
+  display: inline-block;
+  background-color: var(--secondary-color);
+  color: var(--primary-color);
+  padding: 0.2em 0.6em;
+  border-radius: 12px;
+  font-size: 0.75em;
+  margin-left: 0.5em;
+}
+
+.post-edited {
+  color: var(--text-light);
+  font-size: 0.8em;
+  font-style: italic;
+  margin-left: 0.5em;
+}
+
+/* Post Stats */
+.post-stats {
+  display: flex;
+  gap: 1em;
+  padding: 0.5em 0;
+  color: var(--text-light);
+  font-size: 0.85em;
+}
+
+/* Post Images */
+.post-images {
+  display: flex;
+  gap: 0.5em;
+  flex-wrap: wrap;
+  margin-top: 1em;
+}
+
+.post-images img {
+  max-width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+/* Liked/Saved States */
+.action-btn.liked {
+  color: #ef4444;
+  border-color: #ef4444;
+  background-color: #fef2f2;
+}
+
+.action-btn.saved {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+  background-color: var(--secondary-color);
+}
+
+/* No Posts Message */
+.no-posts {
+  text-align: center;
+  padding: 3em 2em;
+  color: var(--text-light);
+  background: white;
+  border-radius: 8px;
+  border: 1px dashed var(--border-color);
+}
+
+/* Loading Comments */
+.loading-comments {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  padding: 1em;
+  color: var(--text-light);
+}
+
+/* Add Comment */
+.add-comment {
+  display: flex;
+  gap: 0.5em;
+  margin-top: 0.5em;
+}
+
+.add-comment input {
+  flex: 1;
+  padding: 0.75em 1em;
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  font-size: 0.9em;
+}
+
+.add-comment input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.add-comment button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background-color: var(--primary-color);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s ease;
+}
+
+.add-comment button:hover:not(:disabled) {
+  background-color: var(--primary-dark);
+}
+
+.add-comment button:disabled {
+  background-color: var(--border-color);
+  cursor: not-allowed;
+}
+
+/* Communities List in Sidebar */
+.communities-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+}
+
+.community-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  padding: 0.75em;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.community-item:hover {
+  background-color: #f9fafb;
+}
+
+.community-item.active {
+  background-color: var(--secondary-color);
+}
+
+.community-item img {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.community-item strong {
+  display: block;
+  color: var(--text-dark);
+  font-size: 0.9em;
+}
+
+.community-item span {
+  display: block;
+  color: var(--text-light);
+  font-size: 0.8em;
+}
+
 @media (max-width: 1024px) {
   .community-content {
     grid-template-columns: 1fr;

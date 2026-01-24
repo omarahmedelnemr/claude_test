@@ -1,24 +1,82 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { courses, users } from '../../data/mockData';
-import { Search, Filter } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import courseService from '../../services/courseService';
+import { Search, Filter, Loader2 } from 'lucide-react';
 import './CourseList.css';
 
 const CourseList = () => {
+  const { currentUser } = useAuth();
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedLevel, setSelectedLevel] = useState('all');
+  const [selectedSubject, setSelectedSubject] = useState('all');
+  const [subjects, setSubjects] = useState(['all']);
 
-  const categories = ['all', ...new Set(courses.map(c => c.category))];
-  const levels = ['all', 'Beginner', 'Intermediate', 'Advanced'];
+  // Fetch courses on mount
+  useEffect(() => {
+    fetchCourses();
+  }, []);
 
+  const fetchCourses = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const params = {
+        studentID: currentUser?.id || null,
+        searchQuery: searchTerm || undefined,
+        subject: selectedSubject !== 'all' ? selectedSubject : undefined,
+        sortBy: 'createdAt',
+        sortOrder: 'DESC',
+        limit: 20,
+        loadBlock: 1,
+      };
+      const response = await courseService.getAvailableCourses(params);
+      
+      // Handle different response formats
+      const coursesData = Array.isArray(response) ? response : response.courses || response.data || [];
+      setCourses(coursesData);
+      
+      // Extract unique subjects
+      const uniqueSubjects = ['all', ...new Set(coursesData.map(c => c.subject).filter(Boolean))];
+      setSubjects(uniqueSubjects);
+    } catch (err) {
+      console.error('Error fetching courses:', err);
+      setError(err.message || 'Failed to load courses. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Refetch when search term or subject changes
+  useEffect(() => {
+    if (!loading) {
+      const timeoutId = setTimeout(() => {
+        fetchCourses();
+      }, 500); // Debounce search
+      return () => clearTimeout(timeoutId);
+    }
+  }, [searchTerm, selectedSubject]);
+
+  // Client-side filtering for immediate feedback
   const filteredCourses = courses.filter(course => {
-    const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         course.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || course.category === selectedCategory;
-    const matchesLevel = selectedLevel === 'all' || course.level === selectedLevel;
-    return matchesSearch && matchesCategory && matchesLevel;
+    const matchesSearch = !searchTerm || 
+      course.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      course.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSubject = selectedSubject === 'all' || course.subject === selectedSubject;
+    return matchesSearch && matchesSubject;
   });
+
+  if (loading && courses.length === 0) {
+    return (
+      <div className="container">
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+          <Loader2 size={48} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container">
@@ -26,6 +84,12 @@ const CourseList = () => {
         <h1>Explore Courses</h1>
         <p>Discover and enroll in courses taught by expert instructors</p>
       </div>
+
+      {error && (
+        <div className="error-message" style={{ margin: '1em 0', padding: '1em', background: '#fee', color: '#c33', borderRadius: '4px' }}>
+          {error}
+        </div>
+      )}
 
       <div className="filters-section">
         <div className="search-box">
@@ -41,23 +105,12 @@ const CourseList = () => {
         <div className="filter-group">
           <Filter size={20} />
           <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
+            value={selectedSubject}
+            onChange={(e) => setSelectedSubject(e.target.value)}
           >
-            {categories.map(cat => (
-              <option key={cat} value={cat}>
-                {cat === 'all' ? 'All Categories' : cat}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={selectedLevel}
-            onChange={(e) => setSelectedLevel(e.target.value)}
-          >
-            {levels.map(level => (
-              <option key={level} value={level}>
-                {level === 'all' ? 'All Levels' : level}
+            {subjects.map(subject => (
+              <option key={subject} value={subject}>
+                {subject === 'all' ? 'All Subjects' : subject}
               </option>
             ))}
           </select>
@@ -68,42 +121,72 @@ const CourseList = () => {
         <p>Showing {filteredCourses.length} course{filteredCourses.length !== 1 ? 's' : ''}</p>
       </div>
 
-      <div className="course-grid">
-        {filteredCourses.map(course => {
-          const teacher = users.find(u => u.id === course.teacherId);
-          return (
-            <div key={course.id} className="course-card">
-              <Link to={`/courses/${course.id}`}>
-                <img src={course.thumbnail} alt={course.title} />
+      {filteredCourses.length === 0 && !loading ? (
+        <div style={{ textAlign: 'center', padding: '3em', color: '#666' }}>
+          <p>No courses found. Try adjusting your search or filters.</p>
+        </div>
+      ) : (
+        <div className="course-grid">
+          {filteredCourses.map(course => (
+            <div key={course.id || course.courseID} className="course-card">
+              <Link to={`/courses/${course.id || course.courseID}`}>
+                <img 
+                  src={course.thumbnailUrl || course.thumbnail || 'https://via.placeholder.com/400x225?text=Course'} 
+                  alt={course.title} 
+                />
               </Link>
               <div className="course-content">
                 <div className="course-meta">
-                  <span className="category-badge">{course.category}</span>
-                  <span className="level-badge">{course.level}</span>
+                  {course.subject && (
+                    <span className="category-badge">{course.subject}</span>
+                  )}
+                  {course.status && course.status !== 'published' && (
+                    <span className="level-badge">{course.status}</span>
+                  )}
                 </div>
-                <Link to={`/courses/${course.id}`}>
+                <Link to={`/courses/${course.id || course.courseID}`}>
                   <h3>{course.title}</h3>
                 </Link>
-                <p className="course-description">{course.description}</p>
-                <div className="teacher-info">
-                  <img src={teacher?.avatar} alt={teacher?.name} />
-                  <span>{teacher?.name}</span>
-                </div>
+                <p className="course-description">
+                  {course.description || 'No description available'}
+                </p>
+                {course.teacher && (
+                  <div className="teacher-info">
+                    <img 
+                      src={course.teacher.profileImage || course.teacher.avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(course.teacher.name || 'Teacher')} 
+                      alt={course.teacher.name} 
+                    />
+                    <span>{course.teacher.name}</span>
+                  </div>
+                )}
                 <div className="course-stats">
                   <div>
-                    <span className="rating">⭐ {course.rating}</span>
-                    <span className="students">{course.studentsEnrolled.toLocaleString()} students</span>
+                    {course.rating && (
+                      <span className="rating">⭐ {course.rating.toFixed(1)}</span>
+                    )}
+                    {course.enrolledCount !== undefined && (
+                      <span className="students">
+                        {course.enrolledCount.toLocaleString()} students
+                      </span>
+                    )}
                   </div>
-                  <span className="price">${course.price}</span>
+                  {course.price !== undefined && (
+                    <span className="price">
+                      {course.currency || '$'}{course.price}
+                    </span>
+                  )}
                 </div>
-                <Link to={`/courses/${course.id}`} className="enroll-btn">
-                  View Course
+                <Link 
+                  to={`/courses/${course.id || course.courseID}`} 
+                  className="enroll-btn"
+                >
+                  {course.isEnrolled ? 'View Course' : 'View Details'}
                 </Link>
               </div>
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
