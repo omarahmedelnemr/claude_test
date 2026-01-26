@@ -4,7 +4,7 @@ import communityService from '../../services/communityService';
 import FileUpload from '../../components/Common/FileUpload';
 import ImageGallery from '../../components/Common/ImageGallery';
 import ReportPost from '../../components/Common/ReportPost';
-import { Heart, MessageCircle, Image, Send, Loader, AlertCircle, Bookmark, BookmarkCheck, X, Flag, MoreVertical, Edit2, Save } from 'lucide-react';
+import { Heart, MessageCircle, Image, Send, Loader, AlertCircle, Bookmark, BookmarkCheck, X, Flag, MoreVertical, Edit2, Save, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import './Community.css';
 
@@ -46,6 +46,8 @@ const Community = () => {
   const [editHideIdentity, setEditHideIdentity] = useState(false);
   const [editPostCommunity, setEditPostCommunity] = useState('');
   const [editMenuOpen, setEditMenuOpen] = useState(null); // Track which post's menu is open
+  const [deletingPost, setDeletingPost] = useState(null); // Track which post is being deleted
+  const [deletingComment, setDeletingComment] = useState(null); // Track which comment is being deleted
 
   // Loading and error states
   const [loading, setLoading] = useState(true);
@@ -462,6 +464,14 @@ const Community = () => {
     return false;
   };
 
+  // Check if comment belongs to current user
+  const isMyComment = (comment) => {
+    if (!currentUser) return false;
+    if (currentUser.role === 'student' && comment.studentID === currentUser.id) return true;
+    if (currentUser.role === 'teacher' && comment.teacherID === currentUser.id) return true;
+    return false;
+  };
+
   const handleOpenEditMenu = (postId, e) => {
     e.stopPropagation();
     setEditMenuOpen(editMenuOpen === postId ? null : postId);
@@ -529,6 +539,142 @@ const Community = () => {
 
   const handleRemoveEditImage = (indexToRemove) => {
     setEditPostImages(prev => prev.filter((_, index) => index !== indexToRemove));
+  };
+
+  const handleDeletePost = async (postId) => {
+    if (!currentUser) return;
+    
+    // Confirm deletion
+    if (!window.confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeletingPost(postId);
+      setError(null);
+
+      // Call delete API
+      await communityService.deletePost({
+        postID: postId,
+        studentID: currentUser.role === 'student' ? currentUser.id : undefined,
+        teacherID: currentUser.role === 'teacher' ? currentUser.id : undefined
+      });
+
+      // Remove post from local state
+      setPosts(prev => prev.filter(post => post.id !== postId));
+      
+      // Clean up related state
+      setPostComments(prev => {
+        const newComments = { ...prev };
+        delete newComments[postId];
+        return newComments;
+      });
+      setPostCommentsLoadBlock(prev => {
+        const newLoadBlocks = { ...prev };
+        delete newLoadBlocks[postId];
+        return newLoadBlocks;
+      });
+      setPostCommentsHasMore(prev => {
+        const newHasMore = { ...prev };
+        delete newHasMore[postId];
+        return newHasMore;
+      });
+      setExpandedComments(prev => {
+        const newExpanded = { ...prev };
+        delete newExpanded[postId];
+        return newExpanded;
+      });
+
+      // Close menu
+      setEditMenuOpen(null);
+    } catch (err) {
+      console.error('Error deleting post:', err);
+      setError(err.message || 'Failed to delete post. Please try again.');
+    } finally {
+      setDeletingPost(null);
+    }
+  };
+
+  const handleDeleteComment = async (commentId, postId) => {
+    if (!currentUser) return;
+    
+    // Confirm deletion
+    if (!window.confirm('Are you sure you want to delete this comment? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeletingComment(commentId);
+      setError(null);
+
+      // Call delete API
+      await communityService.deleteComment({
+        commentID: commentId,
+        studentID: currentUser.role === 'student' ? currentUser.id : undefined,
+        teacherID: currentUser.role === 'teacher' ? currentUser.id : undefined
+      });
+
+      // Update comment count in post (decrement by 1)
+      const updatedPost = posts.find(post => post.id === postId);
+      const newTotalComments = Math.max(0, (updatedPost?.commentsNumber || 0) - 1);
+      
+      setPosts(prev => prev.map(post =>
+        post.id === postId
+          ? { ...post, commentsNumber: newTotalComments }
+          : post
+      ));
+
+      // Refetch the current page of comments
+      try {
+        setLoadingComments(prev => ({ ...prev, [postId]: true }));
+        
+        // Get the current loadBlock for this post (default to 1 if not set)
+        const currentLoadBlock = postCommentsLoadBlock[postId] || 1;
+        
+        // Refetch the current page
+        const comments = await communityService.getComments(postId, currentLoadBlock);
+        const commentsArray = Array.isArray(comments) ? comments : [];
+        
+        // Update comments based on current page
+        if (currentLoadBlock === 1) {
+          // If on page 1, replace all comments
+          setPostComments(prev => ({
+            ...prev,
+            [postId]: commentsArray
+          }));
+        } else {
+          // If on page 2 or later, keep previous pages and replace only current page
+          const currentComments = postComments[postId] || [];
+          // Previous pages have (currentLoadBlock - 1) * 3 comments
+          const previousPagesCount = (currentLoadBlock - 1) * 3;
+          const previousPagesComments = currentComments.slice(0, previousPagesCount);
+          // Replace with previous pages + refetched current page
+          setPostComments(prev => ({
+            ...prev,
+            [postId]: [...previousPagesComments, ...commentsArray]
+          }));
+        }
+        
+        // Update hasMore based on new total
+        // Backend returns 3 comments per page
+        // Show "See More" only if we have 3 comments and total is more than what we've loaded
+        const loadedCommentsCount = currentLoadBlock * 3;
+        setPostCommentsHasMore(prev => ({ 
+          ...prev, 
+          [postId]: commentsArray.length >= 3 && newTotalComments > loadedCommentsCount
+        }));
+      } catch (err) {
+        console.error('Error refreshing comments after deletion:', err);
+      } finally {
+        setLoadingComments(prev => ({ ...prev, [postId]: false }));
+      }
+    } catch (err) {
+      console.error('Error deleting comment:', err);
+      setError(err.response?.data?.message || 'Failed to delete comment. Please try again.');
+      alert(err.response?.data?.message || 'Failed to delete comment. Please try again.');
+    } finally {
+      setDeletingComment(null);
+    }
   };
 
   // Loading state
@@ -727,6 +873,18 @@ const Community = () => {
                                   <Edit2 size={16} />
                                   <span>Edit Post</span>
                                 </button>
+                                <button
+                                  onClick={() => handleDeletePost(post.id)}
+                                  className="post-menu-item delete-post-item"
+                                  disabled={deletingPost === post.id}
+                                >
+                                  {deletingPost === post.id ? (
+                                    <Loader size={16} className="spinner" />
+                                  ) : (
+                                    <Trash2 size={16} />
+                                  )}
+                                  <span>Delete Post</span>
+                                </button>
                               </div>
                             </>
                           )}
@@ -830,9 +988,27 @@ const Community = () => {
                                 alt={comment.userName}
                               />
                               <div className="comment-content">
-                                <strong>{comment.userName}</strong>
+                                <div className="comment-header">
+                                  <div>
+                                    <strong>{comment.userName}</strong>
+                                    <span className="comment-time">{formatDate(comment.date)}</span>
+                                  </div>
+                                  {isMyComment(comment) && (
+                                    <button
+                                      onClick={() => handleDeleteComment(comment.id, post.id)}
+                                      disabled={deletingComment === comment.id}
+                                      className="comment-delete-btn"
+                                      aria-label="Delete comment"
+                                    >
+                                      {deletingComment === comment.id ? (
+                                        <Loader className="spinner" size={14} />
+                                      ) : (
+                                        <Trash2 size={14} />
+                                      )}
+                                    </button>
+                                  )}
+                                </div>
                                 <p>{comment.comment}</p>
-                                <span className="comment-time">{formatDate(comment.date)}</span>
                               </div>
                             </div>
                           ))}

@@ -330,6 +330,7 @@
   transition: all 0.2s ease;
   text-align: left;
   font-size: 0.9em;
+  box-shadow: none !important;
 }
 
 .post-menu-item:hover {
@@ -339,6 +340,20 @@
 
 .post-menu-item svg {
   flex-shrink: 0;
+}
+
+.post-menu-item.delete-post-item {
+  color: #dc2626;
+}
+
+.post-menu-item.delete-post-item:hover {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.post-menu-item.delete-post-item:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Edit Post Modal */
@@ -577,11 +592,27 @@
   background-color: #f9fafb;
   padding: 0.75em 1em;
   border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
 }
 
 .comment-content strong {
   color: var(--text-dark);
   font-size: 0.9em;
+}
+
+.comment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+}
+
+.comment-header > div {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
 }
 
 .comment-content p {
@@ -593,6 +624,30 @@
 .comment-time {
   color: var(--text-light);
   font-size: 0.8em;
+}
+
+.comment-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25em;
+  border: none;
+  background: transparent;
+  color: #dc2626;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  box-shadow: none !important;
+}
+
+.comment-delete-btn:hover:not(:disabled) {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.comment-delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .community-sidebar {

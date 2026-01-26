@@ -96,14 +96,17 @@ const communityService = {
 
   /**
    * Delete a post
-   * @param {string} studentID - Student ID
-   * @param {string} postID - Post ID
+   * @param {Object} data - Delete data
+   * @param {string} data.postID - Post ID (required)
+   * @param {string} data.studentID - Student ID (optional, auto-extracted from session)
+   * @param {string} data.teacherID - Teacher ID (optional, auto-extracted from session)
    * @returns {Promise<Object>} Deletion result
    */
-  deletePost: async (studentID, postID) => {
-    const response = await api.delete('/community/post', {
-      data: { studentID, postID }
-    });
+  deletePost: async ({ postID, studentID, teacherID }) => {
+    const data = { postID };
+    if (studentID) data.studentID = studentID;
+    if (teacherID) data.teacherID = teacherID;
+    const response = await api.delete('/community/post', { data });
     return response.data;
   },
 
@@ -182,14 +185,17 @@ const communityService = {
 
   /**
    * Delete a comment
-   * @param {string} studentID - Student ID
-   * @param {string} commentID - Comment ID
+   * @param {Object} data - Delete data
+   * @param {string} data.commentID - Comment ID (required)
+   * @param {string} data.studentID - Student ID (optional, auto-extracted from session)
+   * @param {string} data.teacherID - Teacher ID (optional, auto-extracted from session)
    * @returns {Promise<Object>} Deletion result
    */
-  deleteComment: async (studentID, commentID) => {
-    const response = await api.delete('/community/post-comment', {
-      data: { studentID, commentID }
-    });
+  deleteComment: async ({ commentID, studentID, teacherID }) => {
+    const data = { commentID };
+    if (studentID) data.studentID = studentID;
+    if (teacherID) data.teacherID = teacherID;
+    const response = await api.delete('/community/post-comment', { data });
     return response.data;
   },
 
