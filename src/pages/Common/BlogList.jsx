@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import blogService from '../../services/blogService';
-import { Calendar, Eye, Heart, Loader2, MessageCircle, Plus } from 'lucide-react';
+import { Calendar, Eye, Heart, Loader2, MessageCircle, Plus, Trash2 } from 'lucide-react';
 import './BlogList.css';
 
 const BlogList = () => {
@@ -10,6 +10,7 @@ const BlogList = () => {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [deletingArticle, setDeletingArticle] = useState(null);
 
   useEffect(() => {
     const fetchArticles = async () => {
@@ -37,6 +38,33 @@ const BlogList = () => {
       month: 'long',
       day: 'numeric'
     });
+  };
+
+  // Check if article belongs to current user (teacher)
+  const isMyArticle = (article) => {
+    if (!currentUser || !article) return false;
+    return currentUser.role === 'teacher' && article.teacherID === currentUser.id;
+  };
+
+  const handleDeleteArticle = async (articleId) => {
+    if (!currentUser) return;
+    
+    if (!window.confirm('Are you sure you want to delete this article? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeletingArticle(articleId);
+      await blogService.deleteArticle(articleId);
+      
+      // Remove article from local state
+      setArticles(prev => prev.filter(article => (article.id || article.articleID) !== articleId));
+    } catch (err) {
+      console.error('Error deleting article:', err);
+      alert(err.response?.data?.message || 'Failed to delete article. Please try again.');
+    } finally {
+      setDeletingArticle(null);
+    }
   };
 
   if (loading) {
@@ -88,19 +116,39 @@ const BlogList = () => {
         <div className="blog-grid">
           {articles.map(article => (
             <div key={article.id || article.articleID} className="blog-card">
-              <Link to={`/blog/${article.id || article.articleID}`}>
-                {article.coverImage || article.image ? (
-                  <img 
-                    src={article.coverImage || article.image} 
-                    alt={article.title} 
-                    className="blog-image" 
-                  />
-                ) : (
-                  <div className="blog-image-placeholder">
-                    <span>No Image</span>
-                  </div>
+              <div className="blog-card-header">
+                <Link to={`/blog/${article.id || article.articleID}`}>
+                  {article.coverImage || article.image ? (
+                    <img 
+                      src={article.coverImage || article.image} 
+                      alt={article.title} 
+                      className="blog-image" 
+                    />
+                  ) : (
+                    <div className="blog-image-placeholder">
+                      <span>No Image</span>
+                    </div>
+                  )}
+                </Link>
+                {isMyArticle(article) && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleDeleteArticle(article.id || article.articleID);
+                    }}
+                    disabled={deletingArticle === (article.id || article.articleID)}
+                    className="blog-delete-btn"
+                    aria-label="Delete article"
+                  >
+                    {deletingArticle === (article.id || article.articleID) ? (
+                      <Loader2 size={16} className="spinner" />
+                    ) : (
+                      <Trash2 size={16} />
+                    )}
+                  </button>
                 )}
-              </Link>
+              </div>
               <div className="blog-content">
                 {article.category && (
                   <div className="blog-tags">

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import blogService from '../../services/blogService';
-import { Calendar, Eye, Heart, ArrowLeft, Loader2, MessageCircle, Send, Edit } from 'lucide-react';
+import { Calendar, Eye, Heart, ArrowLeft, Loader2, MessageCircle, Send, Edit, Trash2 } from 'lucide-react';
 import './BlogDetail.css';
 
 const BlogDetail = () => {
@@ -19,6 +19,8 @@ const BlogDetail = () => {
   const [submittingComment, setSubmittingComment] = useState(false);
   const [commentsLoadBlock, setCommentsLoadBlock] = useState(1);
   const [hasMoreComments, setHasMoreComments] = useState(false);
+  const [deletingArticle, setDeletingArticle] = useState(false);
+  const [deletingComment, setDeletingComment] = useState(null);
 
   useEffect(() => {
     const fetchArticle = async () => {
@@ -177,6 +179,84 @@ const BlogDetail = () => {
     });
   };
 
+  // Check if article belongs to current user (teacher)
+  const isMyArticle = () => {
+    if (!currentUser || !article) return false;
+    return currentUser.role === 'teacher' && article.teacherID === currentUser.id;
+  };
+
+  // Check if comment belongs to current user
+  const isMyComment = (comment) => {
+    if (!currentUser) return false;
+    if (currentUser.role === 'teacher' && comment.teacherID === currentUser.id) return true;
+    if (currentUser.role === 'student' && comment.studentID === currentUser.id) return true;
+    return false;
+  };
+
+  const handleDeleteArticle = async () => {
+    if (!isMyArticle()) return;
+    
+    if (!window.confirm('Are you sure you want to delete this article? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeletingArticle(true);
+      await blogService.deleteArticle(id);
+      // Redirect to blog list after deletion
+      window.location.href = '/blog';
+    } catch (err) {
+      console.error('Error deleting article:', err);
+      alert(err.response?.data?.message || 'Failed to delete article. Please try again.');
+    } finally {
+      setDeletingArticle(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    if (!currentUser) return;
+    
+    if (!window.confirm('Are you sure you want to delete this comment? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeletingComment(commentId);
+      await blogService.deleteComment(commentId);
+
+      // Update comment count in article (decrement by 1)
+      if (article) {
+        setArticle({
+          ...article,
+          commentsNumber: Math.max(0, (article.commentsNumber || 0) - 1),
+        });
+      }
+
+      // Refetch the current page of comments
+      try {
+        setLoadingComments(true);
+        const currentLoadBlock = commentsLoadBlock;
+        const commentsData = await blogService.getArticleComments(id, currentLoadBlock);
+        const commentsArray = Array.isArray(commentsData) ? commentsData : [];
+        
+        // Replace comments with refetched ones
+        setComments(commentsArray);
+        
+        // Update hasMore based on new data
+        setHasMoreComments(commentsArray.length >= 15);
+      } catch (err) {
+        console.error('Error refreshing comments after deletion:', err);
+      } finally {
+        setLoadingComments(false);
+      }
+    } catch (err) {
+      console.error('Error deleting comment:', err);
+      alert(err.response?.data?.message || 'Failed to delete comment. Please try again.');
+    } finally {
+      setDeletingComment(null);
+    }
+  };
+
   return (
     <div className="container blog-detail-page">
       <Link to="/blog" className="back-link">
@@ -216,11 +296,26 @@ const BlogDetail = () => {
               </div>
             </div>
             <div className="article-actions">
-              {currentUser?.role === 'teacher' && article.teacherID === currentUser.id && (
-                <Link to={`/blog/edit/${id}`} className="edit-article-btn">
-                  <Edit size={18} />
-                  Edit Article
-                </Link>
+              {isMyArticle() && (
+                <>
+                  <Link to={`/blog/edit/${id}`} className="edit-article-btn">
+                    <Edit size={18} />
+                    Edit
+                  </Link>
+                  <button
+                    onClick={handleDeleteArticle}
+                    disabled={deletingArticle}
+                    className="delete-article-btn"
+                    aria-label="Delete article"
+                  >
+                    {deletingArticle ? (
+                      <Loader2 size={18} className="spinner" />
+                    ) : (
+                      <Trash2 size={18} />
+                    )}
+                    Delete
+                  </button>
+                </>
               )}
               <button
                 onClick={handleLike}
@@ -283,11 +378,27 @@ const BlogDetail = () => {
                       />
                       <div className="comment-content">
                         <div className="comment-header">
-                          <strong>{comment.userName || comment.teacherName || 'User'}</strong>
-                          {comment.teacherTitle && (
-                            <span className="comment-title">{comment.teacherTitle}</span>
+                          <div>
+                            <strong>{comment.userName || comment.teacherName || 'User'}</strong>
+                            {comment.teacherTitle && (
+                              <span className="comment-title">{comment.teacherTitle}</span>
+                            )}
+                            <span className="comment-date">{formatDate(comment.date)}</span>
+                          </div>
+                          {isMyComment(comment) && (
+                            <button
+                              onClick={() => handleDeleteComment(comment.id)}
+                              disabled={deletingComment === comment.id}
+                              className="comment-delete-btn"
+                              aria-label="Delete comment"
+                            >
+                              {deletingComment === comment.id ? (
+                                <Loader2 size={14} className="spinner" />
+                              ) : (
+                                <Trash2 size={14} />
+                              )}
+                            </button>
                           )}
-                          <span className="comment-date">{formatDate(comment.date)}</span>
                         </div>
                         <p>{comment.comment}</p>
                         {comment.likes !== undefined && comment.likes > 0 && (

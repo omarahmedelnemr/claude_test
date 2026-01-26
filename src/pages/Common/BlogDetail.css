@@ -108,18 +108,53 @@
   gap: 0.5em;
   padding: 0.6em 1.2em;
   background: var(--primary-color);
-  color: white;
+  color: white !important;
   text-decoration: none;
   border-radius: 8px;
   font-size: 0.9em;
   font-weight: 500;
   transition: all 0.3s ease;
+  height: auto;
+  min-height: 2.5em;
+  box-sizing: border-box;
 }
 
 .edit-article-btn:hover {
   background: var(--primary-dark);
+  color: white !important;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(42, 143, 155, 0.3);
+}
+
+.delete-article-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.75em 1.5em;
+  background-color: #dc2626 !important;
+  background: #dc2626 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: none !important;
+  height: auto;
+  min-height: 2.5em;
+  box-sizing: border-box;
+}
+
+.delete-article-btn:hover:not(:disabled) {
+  background-color: #b91c1c !important;
+  background: #b91c1c !important;
+  transform: translateY(-2px);
+}
+
+.delete-article-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .like-btn {
@@ -397,8 +432,16 @@
 .comment-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.5em;
   margin-bottom: 0.5em;
+  flex-wrap: wrap;
+}
+
+.comment-header > div {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
   flex-wrap: wrap;
 }
 
@@ -416,7 +459,30 @@
 .comment-date {
   color: var(--text-light);
   font-size: 0.85em;
-  margin-left: auto;
+}
+
+.comment-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25em;
+  border: none;
+  background: transparent;
+  color: #dc2626;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  box-shadow: none !important;
+}
+
+.comment-delete-btn:hover:not(:disabled) {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.comment-delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .comment-content p {

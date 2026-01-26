@@ -47,6 +47,42 @@
   overflow: hidden;
   box-shadow: var(--card-shadow);
   transition: all 0.3s ease;
+  position: relative;
+}
+
+.blog-card-header {
+  position: relative;
+}
+
+.blog-delete-btn {
+  position: absolute;
+  top: 0.75em;
+  right: 0.75em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5em;
+  background-color: #dc2626 !important;
+  background: #dc2626 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+  z-index: 10;
+}
+
+.blog-delete-btn:hover:not(:disabled) {
+  background-color: #b91c1c !important;
+  background: #b91c1c !important;
+  transform: scale(1.1);
+  box-shadow: 0 2px 12px rgba(220, 38, 38, 0.4);
+}
+
+.blog-delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .blog-card:hover {

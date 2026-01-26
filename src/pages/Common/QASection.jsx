@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import qaService from '../../services/qaService';
-import { Search, ThumbsUp, ChevronDown, ChevronUp, MessageSquare, Send, X, Loader2, AlertCircle } from 'lucide-react';
+import { Search, ThumbsUp, ChevronDown, ChevronUp, MessageSquare, Send, X, Loader2, AlertCircle, Trash2 } from 'lucide-react';
 import './QASection.css';
 
 const QASection = () => {
@@ -26,6 +26,9 @@ const QASection = () => {
 
   // Helpful votes state
   const [markingHelpful, setMarkingHelpful] = useState({});
+  
+  // Delete answer state
+  const [deletingAnswer, setDeletingAnswer] = useState(null);
 
   useEffect(() => {
     if (currentUser) {
@@ -175,6 +178,46 @@ const QASection = () => {
       alert(err.message || 'Failed to remove helpful vote. Please try again.');
     } finally {
       setMarkingHelpful(prev => ({ ...prev, [answerID]: false }));
+    }
+  };
+
+  // Check if answer belongs to current user (teacher)
+  const isMyAnswer = (answer) => {
+    if (!currentUser || !answer) return false;
+    return currentUser.role === 'teacher' && answer.teacher?.id === currentUser.id;
+  };
+
+  const handleDeleteAnswer = async (answerID, questionID) => {
+    if (!currentUser || currentUser.role !== 'teacher') return;
+    
+    if (!window.confirm('Are you sure you want to delete this answer? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeletingAnswer(answerID);
+      await qaService.deleteAnswer({ answerID });
+
+      // Remove answer from local state
+      setQuestions(prev => prev.map(question => {
+        if (question.id === questionID) {
+          const updatedAnswers = question.answers?.filter(answer => answer.id !== answerID) || [];
+          return {
+            ...question,
+            answers: updatedAnswers,
+            hasAnswers: updatedAnswers.length > 0
+          };
+        }
+        return question;
+      }));
+
+      // Refetch questions to ensure consistency
+      await fetchQuestions();
+    } catch (err) {
+      console.error('Error deleting answer:', err);
+      alert(err.response?.data?.message || err.message || 'Failed to delete answer. Please try again.');
+    } finally {
+      setDeletingAnswer(null);
     }
   };
 
@@ -376,6 +419,23 @@ const QASection = () => {
                                     </div>
                                   </div>
                                 </div>
+                              )}
+                              {isMyAnswer(answer) && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteAnswer(answer.id, question.id);
+                                  }}
+                                  disabled={deletingAnswer === answer.id}
+                                  className="answer-delete-btn"
+                                  aria-label="Delete answer"
+                                >
+                                  {deletingAnswer === answer.id ? (
+                                    <Loader2 size={14} className="spinner" />
+                                  ) : (
+                                    <Trash2 size={14} />
+                                  )}
+                                </button>
                               )}
                             </div>
                             <p className="answer-text">{answer.answer}</p>

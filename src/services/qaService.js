@@ -67,6 +67,17 @@ const qaService = {
     const response = await api.delete('/qa/answer/helpful', { data });
     return response.data;
   },
+
+  /**
+   * Delete an answer (teachers can delete their own answers)
+   * @param {Object} data - Delete data
+   * @param {number} data.answerID - Answer ID
+   * @returns {Promise} API response
+   */
+  deleteAnswer: async (data) => {
+    const response = await api.delete('/qa/answer', { data });
+    return response.data;
+  },
 };
 
 export default qaService;
