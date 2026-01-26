@@ -13,6 +13,7 @@ import Community from './pages/Common/Community';
 import SavedPosts from './pages/Common/SavedPosts';
 import BlogList from './pages/Common/BlogList';
 import BlogDetail from './pages/Common/BlogDetail';
+import CreateArticle from './pages/Teacher/CreateArticle';
 import QASection from './pages/Common/QASection';
 import Profile from './pages/Common/Profile';
 import MyCourses from './pages/Teacher/MyCourses';
@@ -67,6 +68,22 @@ const AppRoutes = () => {
         <Route path="saved-posts" element={<ProtectedRoute><SavedPosts /></ProtectedRoute>} />
         <Route path="blog" element={<BlogList />} />
         <Route path="blog/:id" element={<BlogDetail />} />
+        <Route
+          path="blog/create"
+          element={
+            <ProtectedRoute allowedRoles={['teacher']}>
+              <CreateArticle />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="blog/edit/:id"
+          element={
+            <ProtectedRoute allowedRoles={['teacher']}>
+              <CreateArticle />
+            </ProtectedRoute>
+          }
+        />
         <Route path="qa" element={<QASection />} />
         <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 

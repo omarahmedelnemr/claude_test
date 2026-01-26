@@ -98,7 +98,7 @@ export const blogService = {
   },
 
   /**
-   * Like an article (Student or Teacher)
+   * Like an article (Teacher, Student, or Parent) - Unified endpoint
    * @param {string} articleID - Article ID
    * @returns {Promise} API response
    */
@@ -108,12 +108,56 @@ export const blogService = {
   },
 
   /**
-   * Unlike an article (Student or Teacher)
+   * Unlike an article (Teacher, Student, or Parent) - Unified endpoint
    * @param {string} articleID - Article ID
    * @returns {Promise} API response
    */
   unlikeArticle: async (articleID) => {
     const response = await api.delete('/blog/like-article', {
+      data: { articleID },
+    });
+    return response.data;
+  },
+
+  /**
+   * Teacher upvotes an article (deprecated - use likeArticle instead)
+   * @param {string} articleID - Article ID
+   * @returns {Promise} API response
+   */
+  teacherUpvoteArticle: async (articleID) => {
+    const response = await api.post('/blog/teacher-upvote-article', { articleID });
+    return response.data;
+  },
+
+  /**
+   * Remove teacher upvote from an article (deprecated - use unlikeArticle instead)
+   * @param {string} articleID - Article ID
+   * @returns {Promise} API response
+   */
+  removeTeacherUpvote: async (articleID) => {
+    const response = await api.delete('/blog/teacher-upvote-article', {
+      data: { articleID },
+    });
+    return response.data;
+  },
+
+  /**
+   * Student upvotes an article (deprecated - use likeArticle instead)
+   * @param {string} articleID - Article ID
+   * @returns {Promise} API response
+   */
+  studentUpvoteArticle: async (articleID) => {
+    const response = await api.post('/blog/student-upvote-article', { articleID });
+    return response.data;
+  },
+
+  /**
+   * Remove student upvote from an article (deprecated - use unlikeArticle instead)
+   * @param {string} articleID - Article ID
+   * @returns {Promise} API response
+   */
+  removeStudentUpvote: async (articleID) => {
+    const response = await api.delete('/blog/student-upvote-article', {
       data: { articleID },
     });
     return response.data;
@@ -160,6 +204,93 @@ export const blogService = {
    */
   getMyArticles: async (params = {}) => {
     const response = await api.get('/blog/my-articles', { params });
+    return response.data;
+  },
+
+  /**
+   * Get comments for an article (all users can view)
+   * @param {string} articleID - Article ID
+   * @param {number} loadBlock - Page number (default: 1)
+   * @returns {Promise} API response with comments list
+   */
+  getArticleComments: async (articleID, loadBlock = 1) => {
+    const response = await api.get('/blog/comment-list', {
+      params: { articleID, loadBlock },
+    });
+    return response.data;
+  },
+
+  /**
+   * Add a comment to an article (Teacher, Student, or Parent) - Unified endpoint
+   * @param {Object} data - Comment data
+   * @param {string} data.articleID - Article ID
+   * @param {string} data.comment - Comment text (max 500 chars)
+   * @returns {Promise} API response
+   */
+  addComment: async (data) => {
+    const response = await api.post('/blog/comment', {
+      articleID: data.articleID,
+      comment: data.comment || data.text,
+      date: data.date || new Date().toISOString(),
+    });
+    return response.data;
+  },
+
+  /**
+   * Delete a comment (Teacher, Student, or Parent) - Unified endpoint
+   * @param {string} commentID - Comment ID
+   * @returns {Promise} API response
+   */
+  deleteComment: async (commentID) => {
+    const response = await api.delete('/blog/comment', {
+      data: { commentID },
+    });
+    return response.data;
+  },
+
+  /**
+   * Like a comment (Teacher, Student, or Parent) - Unified endpoint
+   * @param {string} commentID - Comment ID
+   * @returns {Promise} API response
+   */
+  likeComment: async (commentID) => {
+    const response = await api.post('/blog/comment-like', { commentID });
+    return response.data;
+  },
+
+  /**
+   * Remove like from a comment (Teacher, Student, or Parent) - Unified endpoint
+   * @param {string} commentID - Comment ID
+   * @returns {Promise} API response
+   */
+  unlikeComment: async (commentID) => {
+    const response = await api.delete('/blog/comment-like', {
+      data: { commentID },
+    });
+    return response.data;
+  },
+
+  /**
+   * Teacher adds a comment to an article (deprecated - use addComment instead)
+   * @param {Object} data - Comment data
+   * @param {string} data.articleID - Article ID
+   * @param {string} data.text - Comment text (max 500 chars)
+   * @returns {Promise} API response
+   */
+  addTeacherComment: async (data) => {
+    const response = await api.post('/blog/teacher-comment', data);
+    return response.data;
+  },
+
+  /**
+   * Teacher deletes their comment (deprecated - use deleteComment instead)
+   * @param {string} commentID - Comment ID
+   * @returns {Promise} API response
+   */
+  deleteTeacherComment: async (commentID) => {
+    const response = await api.delete('/blog/teacher-comment', {
+      data: { commentID },
+    });
     return response.data;
   },
 };

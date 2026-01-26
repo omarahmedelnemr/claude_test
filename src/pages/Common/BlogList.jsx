@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import blogService from '../../services/blogService';
-import { Calendar, Eye, Heart, Loader2 } from 'lucide-react';
+import { Calendar, Eye, Heart, Loader2, MessageCircle, Plus } from 'lucide-react';
 import './BlogList.css';
 
 const BlogList = () => {
+  const { currentUser } = useAuth();
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -65,8 +67,16 @@ const BlogList = () => {
   return (
     <div className="container">
       <div className="page-header">
-        <h1>Blog Articles</h1>
-        <p>Insights and knowledge from our expert teachers</p>
+        <div>
+          <h1>Blog Articles</h1>
+          <p>Insights and knowledge from our expert teachers</p>
+        </div>
+        {currentUser?.role === 'teacher' && (
+          <Link to="/blog/create" className="create-article-btn">
+            <Plus size={18} />
+            Create Article
+          </Link>
+        )}
       </div>
 
       {articles.length === 0 ? (
@@ -79,11 +89,17 @@ const BlogList = () => {
           {articles.map(article => (
             <div key={article.id || article.articleID} className="blog-card">
               <Link to={`/blog/${article.id || article.articleID}`}>
-                <img 
-                  src={article.coverImage || article.image || '/default-blog.jpg'} 
-                  alt={article.title} 
-                  className="blog-image" 
-                />
+                {article.coverImage || article.image ? (
+                  <img 
+                    src={article.coverImage || article.image} 
+                    alt={article.title} 
+                    className="blog-image" 
+                  />
+                ) : (
+                  <div className="blog-image-placeholder">
+                    <span>No Image</span>
+                  </div>
+                )}
               </Link>
               <div className="blog-content">
                 {article.category && (
@@ -95,17 +111,23 @@ const BlogList = () => {
                   <h2>{article.title}</h2>
                 </Link>
                 <p className="blog-excerpt">
-                  {article.mainText?.substring(0, 150) || article.excerpt || ''}
-                  {(article.mainText?.length > 150 || article.excerpt?.length > 150) && '...'}
+                  {/* Strip HTML tags for excerpt display */}
+                  {(article.mainText || article.excerpt || '')
+                    .replace(/<[^>]*>/g, '')
+                    .substring(0, 150)}
+                  {((article.mainText || article.excerpt || '').replace(/<[^>]*>/g, '').length > 150) && '...'}
                 </p>
                 <div className="blog-meta">
                   <div className="author-info">
                     <img 
-                      src={article.teacher?.profileImage || article.author?.avatar || '/default-avatar.png'} 
-                      alt={article.teacher?.name || article.author?.name} 
+                      src={article.teacherProfileImage || article.teacher?.profileImage || article.author?.avatar || '/default-avatar.png'} 
+                      alt={article.teacherName || article.teacher?.name || article.author?.name || 'Teacher'} 
                     />
                     <div>
-                      <strong>{article.teacher?.name || article.author?.name || 'Unknown'}</strong>
+                      <strong>{article.teacherName || article.teacher?.name || article.author?.name || 'Unknown Teacher'}</strong>
+                      {article.teacherTitle && (
+                        <span className="teacher-title">{article.teacherTitle}</span>
+                      )}
                       <span className="date">
                         <Calendar size={14} />
                         {formatDate(article.date || article.createdAt)}
@@ -115,12 +137,18 @@ const BlogList = () => {
                   <div className="blog-stats">
                     <span>
                       <Eye size={16} />
-                      {article.viewCount || article.views || 0}
+                      {article.viewCount || article.views || article.seenCount || 0}
                     </span>
                     <span>
                       <Heart size={16} />
-                      {article.likeCount || article.likes || 0}
+                      {article.likeCount || article.likes || article.upVotes || 0}
                     </span>
+                    {article.commentsNumber !== undefined && (
+                      <span>
+                        <MessageCircle size={16} />
+                        {article.commentsNumber}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
