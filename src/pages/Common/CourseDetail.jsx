@@ -127,49 +127,54 @@ const CourseDetail = () => {
 
   return (
     <div className="course-detail-page">
-      <div 
-        className="course-hero" 
-        style={{ 
-          backgroundImage: `url(${course.thumbnailUrl || course.thumbnail || 'https://via.placeholder.com/1200x400?text=Course'})` 
-        }}
-      >
-        <div className="hero-overlay">
-          <div className="container">
-            <div className="hero-content">
-              <div className="course-badges">
-                {course.subject && <span className="badge">{course.subject}</span>}
-                {course.status && course.status !== 'published' && (
-                  <span className="badge">{course.status}</span>
-                )}
-              </div>
-              <h1>{course.title}</h1>
-              <p className="course-subtitle">{course.description || 'No description available'}</p>
-              <div className="course-meta-info">
-                {course.rating && (
-                  <div className="meta-item">
-                    <Star size={18} />
-                    <span>{course.rating.toFixed(1)} rating</span>
-                  </div>
-                )}
-                {course.enrolledCount !== undefined && (
-                  <div className="meta-item">
-                    <UsersIcon size={18} />
-                    <span>{course.enrolledCount.toLocaleString()} students</span>
-                  </div>
-                )}
-                {lectures.length > 0 && (
-                  <div className="meta-item">
-                    <BookOpen size={18} />
-                    <span>{lectures.length} lectures</span>
-                  </div>
-                )}
-              </div>
+      <div className="container">
+        <div className="course-header-section">
+          <div className="course-header-content">
+            <div className="course-badges">
+              {course.subject && <span className="badge">{course.subject}</span>}
+              {course.status && course.status !== 'published' && (
+                <span className="badge badge-status">{course.status}</span>
+              )}
+            </div>
+            <h1 className="course-title">{course.title}</h1>
+            <p className="course-description-preview">{course.description || 'No description available'}</p>
+            <div className="course-meta-info">
+              {course.rating && (
+                <div className="meta-item">
+                  <Star size={18} fill="#fbbf24" color="#fbbf24" />
+                  <span>{course.rating.toFixed(1)}</span>
+                </div>
+              )}
+              {course.enrolledCount !== undefined && (
+                <div className="meta-item">
+                  <UsersIcon size={18} />
+                  <span>{course.enrolledCount.toLocaleString()} students</span>
+                </div>
+              )}
+              {lectures.length > 0 && (
+                <div className="meta-item">
+                  <BookOpen size={18} />
+                  <span>{lectures.length} lectures</span>
+                </div>
+              )}
+              {course.duration && (
+                <div className="meta-item">
+                  <Clock size={18} />
+                  <span>{course.duration}</span>
+                </div>
+              )}
             </div>
           </div>
+          {course.thumbnailUrl || course.thumbnail ? (
+            <div className="course-thumbnail-container">
+              <img 
+                src={course.thumbnailUrl || course.thumbnail} 
+                alt={course.title}
+                className="course-thumbnail"
+              />
+            </div>
+          ) : null}
         </div>
-      </div>
-
-      <div className="container">
         <div className="course-detail-content">
           <div className="course-main">
             <div className="card">

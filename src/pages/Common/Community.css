@@ -2,6 +2,69 @@
   max-width: 1200px;
 }
 
+.page-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5em;
+}
+
+.saved-posts-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--primary-gradient);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-md);
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.saved-posts-icon-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: var(--shadow-lg);
+}
+
+.saved-posts-icon-btn:active {
+  transform: translateY(0) scale(1);
+}
+
+.saved-posts-icon-btn svg {
+  color: white;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.5;
+  display: block;
+}
+
+.community-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2em;
+}
+
+.community-header {
+  margin-bottom: 2em;
+}
+
+.community-header h1 {
+  margin: 0 0 0.5em 0;
+  color: var(--text-dark);
+  font-size: 2em;
+}
+
+.community-header p {
+  margin: 0;
+  color: var(--text-light);
+  font-size: 1.1em;
+}
+
 .community-content {
   display: grid;
   grid-template-columns: 1fr 350px;
@@ -58,6 +121,82 @@
   display: flex;
   align-items: center;
   gap: 0.5em;
+  flex: 1;
+  min-width: 0;
+  max-width: 200px;
+  justify-content: center;
+}
+
+.create-post-actions .file-upload-container {
+  flex: 1;
+  min-width: 0;
+  max-width: 200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.create-post-actions .file-upload-container .file-upload-button {
+  width: 100%;
+  justify-content: center;
+}
+
+.create-post-actions .file-upload-container .upload-error {
+  font-size: 0.75em;
+  padding: 0.5em;
+  margin-top: 0.25em;
+}
+
+.post-images-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75em;
+  margin-bottom: 1em;
+}
+
+.image-preview-item {
+  position: relative;
+  display: inline-block;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid var(--border-color);
+}
+
+.image-preview-item img {
+  max-width: 150px;
+  max-height: 150px;
+  object-fit: cover;
+  display: block;
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: 0.5em;
+  right: 0.5em;
+  background-color: rgba(220, 38, 38, 0.95);
+  color: white;
+  border: 2px solid white;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+  padding: 0;
+}
+
+.remove-image-btn:hover {
+  background-color: #dc2626;
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.remove-image-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 .posts-list {
@@ -74,6 +213,12 @@
   display: flex;
   gap: 1em;
   margin-bottom: 1em;
+  align-items: flex-start;
+  position: relative;
+}
+
+.post-header-info {
+  flex: 1;
 }
 
 .post-header img {
@@ -88,6 +233,259 @@
   margin: 0;
   color: var(--text-dark);
   font-size: 1em;
+}
+
+.post-report-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-light);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.post-report-btn:hover {
+  background-color: var(--secondary-color);
+  color: var(--error-color);
+  transform: scale(1.1);
+}
+
+.post-report-btn:active {
+  transform: scale(0.95);
+}
+
+/* Post Menu (Three Dots) */
+.post-menu-wrapper {
+  position: relative;
+}
+
+.post-menu-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-light);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.post-menu-btn svg {
+  color: currentColor;
+  stroke: currentColor;
+  fill: none;
+  display: block;
+}
+
+.post-menu-btn:hover {
+  background-color: var(--secondary-color);
+  color: var(--primary-color);
+}
+
+.post-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 998;
+}
+
+.post-menu-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5em;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 150px;
+  z-index: 999;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.post-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  width: 100%;
+  padding: 0.75em 1em;
+  border: none;
+  background: transparent;
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  font-size: 0.9em;
+}
+
+.post-menu-item:hover {
+  background-color: var(--secondary-color);
+  color: var(--primary-color);
+}
+
+.post-menu-item svg {
+  flex-shrink: 0;
+}
+
+/* Edit Post Modal */
+.edit-post-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 2em;
+}
+
+.edit-post-modal {
+  background: white;
+  border-radius: 12px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.edit-post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5em;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.edit-post-header h2 {
+  margin: 0;
+  color: var(--text-dark);
+  font-size: 1.5em;
+}
+
+.edit-post-header .close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-light);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.edit-post-header .close-btn:hover {
+  background-color: var(--secondary-color);
+  color: var(--primary-color);
+}
+
+.edit-post-content {
+  padding: 1.5em;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5em;
+}
+
+.edit-post-content textarea {
+  width: 100%;
+  padding: 1em;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 1em;
+  resize: vertical;
+  min-height: 120px;
+}
+
+.edit-post-content textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(42, 143, 155, 0.1);
+}
+
+.edit-post-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.edit-post-actions {
+  display: flex;
+  gap: 1em;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.edit-post-actions button {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.75em 1.5em;
+  border-radius: 8px;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.edit-post-actions button.secondary {
+  background: white;
+  color: var(--text-dark);
+  border: 1px solid var(--border-color);
+}
+
+.edit-post-actions button.secondary:hover {
+  background: var(--background-light);
+  border-color: var(--primary-color);
+}
+
+.edit-post-actions button:not(.secondary) {
+  background: var(--primary-gradient);
+  color: white;
+}
+
+.edit-post-actions button:not(.secondary):hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(42, 143, 155, 0.3);
+}
+
+.edit-post-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  cursor: pointer;
+  font-size: 0.9em;
+  color: var(--text-dark);
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: auto;
+  cursor: pointer;
 }
 
 .post-role {
@@ -324,15 +722,18 @@
   padding: 0.5em 1em;
   border: 1px solid var(--border-color);
   background: white;
+  color: var(--text-dark);
   border-radius: 20px;
   cursor: pointer;
   font-size: 0.9em;
   transition: all 0.3s ease;
+  font-weight: 500;
 }
 
 .filter-btn:hover {
   border-color: var(--primary-color);
   color: var(--primary-color);
+  background-color: var(--secondary-color);
 }
 
 .filter-btn.active {
@@ -346,6 +747,45 @@
   display: flex;
   align-items: center;
   gap: 1em;
+  flex-wrap: wrap;
+}
+
+.community-select-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.community-select-label {
+  font-size: 0.9em;
+  color: var(--text-dark);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.community-select {
+  padding: 0.5em 1em;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 0.9em;
+  font-family: inherit;
+  background: white;
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 150px;
+}
+
+.community-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(42, 143, 155, 0.1);
+}
+
+.community-select:disabled {
+  background-color: var(--background-light);
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .checkbox-label {
@@ -392,17 +832,106 @@
 
 /* Post Images */
 .post-images {
-  display: flex;
-  gap: 0.5em;
-  flex-wrap: wrap;
   margin-top: 1em;
 }
 
-.post-images img {
-  max-width: 100%;
-  max-height: 300px;
-  object-fit: cover;
+.post-images.single-image .post-image-wrapper {
+  width: 100%;
+  max-height: 500px;
   border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.post-images.single-image .post-image-wrapper:hover {
+  transform: scale(1.02);
+}
+
+.post-images.single-image .post-image-wrapper img {
+  width: 100%;
+  height: 100%;
+  max-height: 500px;
+  object-fit: contain;
+  display: block;
+}
+
+.post-images-grid {
+  display: grid;
+  gap: 0.5em;
+  grid-template-columns: repeat(2, 1fr);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.post-images-grid .post-image-wrapper {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  background-color: var(--background-light);
+}
+
+.post-images-grid .post-image-wrapper:hover {
+  transform: scale(1.02);
+  opacity: 0.9;
+}
+
+.post-images-grid .post-image-wrapper.has-more::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.post-images-grid .post-image-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.image-more-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  font-size: 1.5em;
+  font-weight: 700;
+  z-index: 1;
+}
+
+.post-image-wrapper {
+  position: relative;
+}
+
+/* For single image in grid (when there are 2 or 3 images) */
+.post-images-grid:has(.post-image-wrapper:only-child) {
+  grid-template-columns: 1fr;
+}
+
+.post-images-grid:has(.post-image-wrapper:nth-child(2):last-child) {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.post-images-grid:has(.post-image-wrapper:nth-child(3):last-child) {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* Fallback for browsers that don't support :has() */
+.post-images-grid .post-image-wrapper:only-child {
+  grid-column: 1 / -1;
 }
 
 /* Liked/Saved States */
@@ -419,6 +948,51 @@
 }
 
 /* No Posts Message */
+.loading-posts {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3em;
+  gap: 1em;
+  color: var(--text-light);
+}
+
+.loading-posts .spinner {
+  animation: spin 1s linear infinite;
+}
+
+.load-more-container {
+  display: flex;
+  justify-content: center;
+  padding: 2em;
+}
+
+.load-more-btn {
+  padding: 0.75em 2em;
+  background: var(--primary-gradient);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.load-more-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(42, 143, 155, 0.3);
+}
+
+.load-more-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .no-posts {
   text-align: center;
   padding: 3em 2em;
@@ -426,6 +1000,19 @@
   background: white;
   border-radius: 8px;
   border: 1px dashed var(--border-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1em;
+}
+
+.no-posts svg {
+  color: var(--text-light);
+  opacity: 0.5;
+}
+
+.no-posts p {
+  margin: 0;
 }
 
 /* Loading Comments */
@@ -436,6 +1023,42 @@
   gap: 0.5em;
   padding: 1em;
   color: var(--text-light);
+}
+
+/* Load More Comments */
+.load-more-comments {
+  display: flex;
+  justify-content: center;
+  padding: 0;
+  margin: 0.25em 0;
+}
+
+.see-more-comments-btn {
+  padding: 0;
+  background: transparent;
+  color: var(--primary-color);
+  border: none;
+  border-radius: 0;
+  font-size: 0.85em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.see-more-comments-btn:hover:not(:disabled) {
+  color: var(--primary-color);
+  opacity: 0.8;
+  text-decoration: none;
+}
+
+.see-more-comments-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Add Comment */
@@ -463,22 +1086,44 @@
   height: 40px;
   border-radius: 50%;
   border: none;
-  background-color: var(--primary-color);
+  background: var(--primary-gradient);
   color: white;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.3s ease;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+  padding: 0;
 }
 
 .add-comment button:hover:not(:disabled) {
-  background-color: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.add-comment button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
 }
 
 .add-comment button:disabled {
-  background-color: var(--border-color);
+  background: var(--border-color);
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.6;
+}
+
+.add-comment button svg {
+  width: 20px;
+  height: 20px;
+  color: inherit;
+  stroke: currentColor;
+  fill: none;
+  display: block;
+  flex-shrink: 0;
 }
 
 /* Communities List in Sidebar */

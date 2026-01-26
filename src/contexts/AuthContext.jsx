@@ -63,23 +63,23 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Signup for different user roles
-   * @param {Object} userData - Signup data
+   * @param {Object} userData - Signup data including email, password, name, birthDate, gender
    * @param {string} role - User role (teacher, student, parent)
-   * @param {string} firebaseToken - Firebase authentication token (required)
    * @returns {Promise<{success: boolean, user?: object, error?: string}>}
    */
-  const signup = async (userData, role, firebaseToken) => {
+  const signup = async (userData, role) => {
     try {
-      // Prepare signup data with Firebase token
+      // Prepare signup data - backend requires: email, password, name, birthDate, gender
       const signupData = {
-        token: firebaseToken,
+        email: userData.email,
+        password: userData.password,
         name: userData.name,
         birthDate: userData.birthDate,
         gender: userData.gender,
         profile_image: userData.profile_image || null,
       };
 
-      // Add role-specific fields
+      // Add role-specific fields for teacher
       if (role === 'teacher') {
         signupData.title = userData.title;
         signupData.description = userData.description;
@@ -133,12 +133,12 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Update user profile
-   * @param {Object} updatedData - Updated profile data
+   * @param {Object} updatedData - Updated profile data from backend
    * @returns {Promise<{success: boolean, user?: object, error?: string}>}
    */
   const updateProfile = async (updatedData) => {
     try {
-      // TODO: Implement profile update API call when profile service is created
+      // Update local state with new profile data
       const updatedUser = { ...currentUser, ...updatedData };
       setCurrentUser(updatedUser);
       localStorage.setItem('currentUser', JSON.stringify(updatedUser));
@@ -208,13 +208,13 @@ export const AuthProvider = ({ children }) => {
   /**
    * Reset password
    * @param {string} email - User email
-   * @param {string} token - Password reset token
+   * @param {string} code - 6-digit OTP code received via email
    * @param {string} newPassword - New password
    * @returns {Promise<{success: boolean, error?: string}>}
    */
-  const resetPassword = async (email, token, newPassword) => {
+  const resetPassword = async (email, code, newPassword) => {
     try {
-      await authService.resetPassword(email, token, newPassword);
+      await authService.resetPassword(email, code, newPassword);
       return { success: true };
     } catch (error) {
       return { 

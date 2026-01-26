@@ -1,21 +1,55 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { blogArticles, users } from '../../data/mockData';
-import { Calendar, Eye, Heart, ArrowLeft } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import blogService from '../../services/blogService';
+import { Calendar, Eye, Heart, ArrowLeft, Loader2 } from 'lucide-react';
 import './BlogDetail.css';
 
 const BlogDetail = () => {
   const { id } = useParams();
-  const article = blogArticles.find(a => a.id === parseInt(id));
-  const author = users.find(u => u.id === article?.authorId);
+  const { currentUser } = useAuth();
+  const [article, setArticle] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [liked, setLiked] = useState(false);
-  const [likes, setLikes] = useState(article?.likes || 0);
+  const [likes, setLikes] = useState(0);
 
-  if (!article) {
+  useEffect(() => {
+    const fetchArticle = async () => {
+      try {
+        setLoading(true);
+        const data = await blogService.getArticle(id);
+        setArticle(data);
+        setLikes(data.likeCount || data.likes || 0);
+        setLiked(data.isLiked || false);
+      } catch (err) {
+        console.error('Error fetching article:', err);
+        setError('Failed to load article');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchArticle();
+    }
+  }, [id]);
+
+  if (loading) {
     return (
-      <div className="container">
+      <div className="container blog-detail-page">
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+          <Loader2 size={32} className="spinner" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !article) {
+    return (
+      <div className="container blog-detail-page">
         <div className="empty-state">
-          <h2>Article not found</h2>
+          <h2>{error || 'Article not found'}</h2>
           <Link to="/blog">Back to Blog</Link>
         </div>
       </div>
@@ -31,19 +65,27 @@ const BlogDetail = () => {
     });
   };
 
-  const handleLike = () => {
-    if (!liked) {
-      setLikes(likes + 1);
-      setLiked(true);
-    } else {
-      setLikes(likes - 1);
-      setLiked(false);
+  const handleLike = async () => {
+    if (!currentUser) {
+      alert('Please login to like articles');
+      return;
+    }
+
+    try {
+      if (!liked) {
+        await blogService.likeArticle(id);
+        setLikes(likes + 1);
+        setLiked(true);
+      } else {
+        await blogService.unlikeArticle(id);
+        setLikes(likes - 1);
+        setLiked(false);
+      }
+    } catch (err) {
+      console.error('Error toggling like:', err);
+      alert('Failed to update like');
     }
   };
-
-  const relatedArticles = blogArticles.filter(a =>
-    a.id !== article.id && a.tags.some(tag => article.tags.includes(tag))
-  ).slice(0, 2);
 
   return (
     <div className="container blog-detail-page">
@@ -54,25 +96,28 @@ const BlogDetail = () => {
 
       <article className="blog-article">
         <header className="article-header">
-          <div className="article-tags">
-            {article.tags.map((tag, idx) => (
-              <span key={idx} className="tag">{tag}</span>
-            ))}
-          </div>
+          {article.category && (
+            <div className="article-tags">
+              <span className="tag">{article.category.name || article.category}</span>
+            </div>
+          )}
           <h1>{article.title}</h1>
           <div className="article-meta">
             <div className="author-section">
-              <img src={author?.avatar} alt={author?.name} />
+              <img 
+                src={article.teacher?.profileImage || article.author?.avatar || '/default-avatar.png'} 
+                alt={article.teacher?.name || article.author?.name} 
+              />
               <div>
-                <strong>{author?.name}</strong>
+                <strong>{article.teacher?.name || article.author?.name || 'Unknown'}</strong>
                 <div className="meta-info">
                   <span>
                     <Calendar size={14} />
-                    {formatDate(article.createdAt)}
+                    {formatDate(article.date || article.createdAt)}
                   </span>
                   <span>
                     <Eye size={14} />
-                    {article.views} views
+                    {article.viewCount || article.views || 0} views
                   </span>
                 </div>
               </div>
@@ -80,6 +125,7 @@ const BlogDetail = () => {
             <button
               onClick={handleLike}
               className={`like-btn ${liked ? 'liked' : ''}`}
+              disabled={!currentUser}
             >
               <Heart size={20} fill={liked ? '#e74c3c' : 'none'} />
               <span>{likes}</span>
@@ -87,58 +133,22 @@ const BlogDetail = () => {
           </div>
         </header>
 
-        <img src={article.image} alt={article.title} className="article-image" />
+        {article.coverImage && (
+          <img src={article.coverImage} alt={article.title} className="article-image" />
+        )}
 
         <div className="article-content">
-          <p className="lead">{article.excerpt}</p>
-          <p>{article.content}</p>
-          <p>
-            As technology continues to evolve, staying updated with the latest trends and best practices
-            is crucial for success. This article explores key insights that can help you advance your skills
-            and knowledge in this rapidly changing field.
-          </p>
-          <p>
-            Whether you're a beginner or an experienced professional, continuous learning and adaptation
-            are essential. We encourage you to engage with the community, share your experiences, and
-            keep pushing the boundaries of what's possible.
-          </p>
+          <p className="lead">{article.mainText || article.content || article.excerpt}</p>
         </div>
 
-        <div className="article-footer">
-          <div className="tags-section">
-            <h4>Tags:</h4>
-            <div className="article-tags">
-              {article.tags.map((tag, idx) => (
-                <span key={idx} className="tag">{tag}</span>
-              ))}
-            </div>
+        {article.attachedImage && article.attachedImage.length > 0 && (
+          <div className="article-images">
+            {article.attachedImage.map((img, idx) => (
+              <img key={idx} src={img.link || img} alt={`${article.title} - Image ${idx + 1}`} />
+            ))}
           </div>
-        </div>
+        )}
       </article>
-
-      {relatedArticles.length > 0 && (
-        <div className="related-articles">
-          <h3>Related Articles</h3>
-          <div className="related-grid">
-            {relatedArticles.map(related => {
-              const relatedAuthor = users.find(u => u.id === related.authorId);
-              return (
-                <Link key={related.id} to={`/blog/${related.id}`} className="related-card">
-                  <img src={related.image} alt={related.title} />
-                  <div className="related-content">
-                    <h4>{related.title}</h4>
-                    <p>{related.excerpt}</p>
-                    <div className="related-meta">
-                      <span>{relatedAuthor?.name}</span>
-                      <span>{formatDate(related.createdAt)}</span>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

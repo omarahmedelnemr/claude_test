@@ -221,27 +221,26 @@ const communityService = {
   },
 
   /**
-   * Get saved posts for a student
-   * @param {string} studentID - Student ID
+   * Get saved posts for the current user (student, teacher, or parent)
+   * User ID is automatically extracted from session by backend
    * @param {number} loadBlock - Page number (default: 1)
    * @returns {Promise<Array>} List of saved posts
    */
-  getSavedPosts: async (studentID, loadBlock = 1) => {
+  getSavedPosts: async (loadBlock = 1) => {
     const response = await api.get('/community/save-post-list', {
-      params: { studentID, loadBlock }
+      params: { loadBlock }
     });
     return response.data;
   },
 
   /**
    * Save a post
-   * @param {string} studentID - Student ID
+   * User ID is automatically extracted from session by backend
    * @param {string} postID - Post ID
    * @returns {Promise<Object>} Save result
    */
-  savePost: async (studentID, postID) => {
+  savePost: async (postID) => {
     const response = await api.post('/community/save-post', {
-      studentID,
       postID
     });
     return response.data;
@@ -249,14 +248,27 @@ const communityService = {
 
   /**
    * Unsave a post
-   * @param {string} studentID - Student ID
+   * User ID is automatically extracted from session by backend
    * @param {string} postID - Post ID
    * @returns {Promise<Object>} Unsave result
    */
-  unsavePost: async (studentID, postID) => {
+  unsavePost: async (postID) => {
     const response = await api.delete('/community/save-post', {
-      data: { studentID, postID }
+      data: { postID }
     });
+    return response.data;
+  },
+
+  /**
+   * Report a post
+   * @param {Object} reportData - Report data
+   * @param {string} reportData.postID - Post ID
+   * @param {string} reportData.reportType - Type of report
+   * @param {string} reportData.reason - Reason for reporting
+   * @returns {Promise<Object>} Report result
+   */
+  reportPost: async (reportData) => {
+    const response = await api.post('/community/report-post', reportData);
     return response.data;
   }
 };

@@ -149,6 +149,8 @@
   flex-shrink: 0;
   border: 2px solid var(--primary-light);
   box-shadow: var(--shadow-sm);
+  background-color: #e5e7eb;
+  display: block;
 }
 
 .user-info {

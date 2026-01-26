@@ -18,7 +18,7 @@ export const authService = {
 
   /**
    * Teacher signup
-   * @param {Object} data - Signup data including token, name, birthDate, gender, title, description
+   * @param {Object} data - Signup data including email, password, name, birthDate, gender, title, description
    * @returns {Promise} API response
    */
   teacherSignup: async (data) => {
@@ -28,7 +28,7 @@ export const authService = {
 
   /**
    * Student signup
-   * @param {Object} data - Signup data including token, name, birthDate, gender
+   * @param {Object} data - Signup data including email, password, name, birthDate, gender
    * @returns {Promise} API response
    */
   studentSignup: async (data) => {
@@ -38,7 +38,7 @@ export const authService = {
 
   /**
    * Parent signup
-   * @param {Object} data - Signup data including token, name, birthDate, gender
+   * @param {Object} data - Signup data including email, password, name, birthDate, gender
    * @returns {Promise} API response
    */
   parentSignup: async (data) => {
@@ -81,14 +81,14 @@ export const authService = {
   /**
    * Reset password
    * @param {string} email - User email
-   * @param {string} token - Password reset token
+   * @param {string} code - 6-digit OTP code received via email
    * @param {string} newPassword - New password
    * @returns {Promise} API response
    */
-  resetPassword: async (email, token, newPassword) => {
+  resetPassword: async (email, code, newPassword) => {
     const response = await api.post('/auth/reset-password', {
       email,
-      token,
+      code,
       newPassword,
     });
     return response.data;

@@ -1,17 +1,66 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Edit2, Save, X } from 'lucide-react';
+import profileService from '../../services/profileService';
+import FileUpload from '../../components/Common/FileUpload';
+import { Edit2, Save, X, Loader2, BookMarked } from 'lucide-react';
 import './Profile.css';
 
 const Profile = () => {
   const { currentUser, updateProfile } = useAuth();
+  const [profileData, setProfileData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    name: currentUser?.name || '',
-    email: currentUser?.email || '',
-    bio: currentUser?.bio || '',
-    expertise: currentUser?.expertise?.join(', ') || ''
+    name: '',
+    email: '',
+    bio: '',
+    title: '',
+    description: '',
+    expertise: ''
   });
+
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      const data = await profileService.getMainInfo();
+      setProfileData(data);
+      setFormData({
+        name: data.name || '',
+        email: data.email || '',
+        bio: data.bio || data.description || '',
+        title: data.title || '',
+        description: data.description || '',
+        expertise: data.tags?.map(t => t.name || t).join(', ') || ''
+      });
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+      setError('Failed to load profile data');
+      // Fallback to currentUser from context
+      if (currentUser) {
+        setProfileData(currentUser);
+        setFormData({
+          name: currentUser.name || '',
+          email: currentUser.email || '',
+          bio: currentUser.bio || '',
+          title: currentUser.title || '',
+          description: currentUser.description || '',
+          expertise: currentUser.expertise?.join(', ') || ''
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch profile data from backend
+  useEffect(() => {
+    if (currentUser) {
+      fetchProfile();
+    }
+  }, [currentUser]);
 
   const handleChange = (e) => {
     setFormData({
@@ -20,28 +69,72 @@ const Profile = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const updatedData = {
-      ...formData,
-      expertise: currentUser?.role === 'teacher'
-        ? formData.expertise.split(',').map(s => s.trim()).filter(Boolean)
-        : currentUser?.expertise
-    };
-    updateProfile(updatedData);
-    setIsEditing(false);
-    alert('Profile updated successfully!');
+    setSaving(true);
+    setError('');
+
+    try {
+      // Update name
+      if (formData.name !== profileData?.name) {
+        await profileService.updateName(formData.name);
+      }
+
+      // Update teacher-specific fields
+      if (currentUser?.role === 'teacher') {
+        if (formData.title !== profileData?.title) {
+          await profileService.updateTeacherTitle(formData.title);
+        }
+        if (formData.description !== profileData?.description) {
+          await profileService.updateTeacherDescription(formData.description);
+        }
+      }
+
+      // Refresh profile data
+      const updatedData = await profileService.getMainInfo();
+      setProfileData(updatedData);
+      
+      // Update context
+      await updateProfile(updatedData);
+      
+      setIsEditing(false);
+      alert('Profile updated successfully!');
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      setError(err.message || 'Failed to update profile');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCancel = () => {
     setFormData({
-      name: currentUser?.name || '',
-      email: currentUser?.email || '',
-      bio: currentUser?.bio || '',
-      expertise: currentUser?.expertise?.join(', ') || ''
+      name: profileData?.name || currentUser?.name || '',
+      email: profileData?.email || currentUser?.email || '',
+      bio: profileData?.bio || profileData?.description || currentUser?.bio || '',
+      title: profileData?.title || currentUser?.title || '',
+      description: profileData?.description || currentUser?.description || '',
+      expertise: profileData?.tags?.map(t => t.name || t).join(', ') || currentUser?.expertise?.join(', ') || ''
     });
     setIsEditing(false);
+    setError('');
   };
+
+  if (loading) {
+    return (
+      <div className="container profile-page">
+        <div className="page-header">
+          <h1>My Profile</h1>
+          <p>Loading profile information...</p>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+          <Loader2 size={32} className="spinner" />
+        </div>
+      </div>
+    );
+  }
+
+  const displayUser = profileData || currentUser;
 
   return (
     <div className="container profile-page">
@@ -50,13 +143,58 @@ const Profile = () => {
         <p>View and manage your personal information</p>
       </div>
 
+      {error && (
+        <div className="error-message" style={{ margin: '1rem 0', padding: '1rem', background: '#fee', color: '#c33', borderRadius: '4px' }}>
+          {error}
+        </div>
+      )}
+
       <div className="profile-content">
         <div className="profile-sidebar">
           <div className="card profile-avatar-section">
-            <img src={currentUser?.avatar} alt={currentUser?.name} className="profile-avatar" />
-            <h2>{currentUser?.name}</h2>
-            <span className="role-badge">{currentUser?.role}</span>
-            <p className="join-date">Member since {currentUser?.joinDate}</p>
+            <div className="avatar-upload-container">
+              <img 
+                src={displayUser?.profileImage || displayUser?.avatar || '/default-avatar.png'} 
+                alt={displayUser?.name} 
+                className="profile-avatar" 
+              />
+              <div className="avatar-upload-overlay">
+                <FileUpload
+                  uploadType="profilePic"
+                  accept="image/*"
+                  maxSize={2}
+                  label="Change Photo"
+                  onUploadComplete={async (file) => {
+                    if (file && file.url) {
+                      try {
+                        setSaving(true);
+                        await profileService.updateProfileImage(file.url);
+                        await fetchProfile();
+                        await updateProfile({ profileImage: file.url });
+                        alert('Profile picture updated successfully!');
+                      } catch (err) {
+                        setError('Failed to update profile picture');
+                      } finally {
+                        setSaving(false);
+                      }
+                    }
+                  }}
+                  showPreview={false}
+                  className="avatar-upload-btn"
+                />
+              </div>
+            </div>
+            <h2>{displayUser?.name}</h2>
+            <span className="role-badge">{displayUser?.role}</span>
+            {displayUser?.title && <p className="title">{displayUser.title}</p>}
+          </div>
+
+          {/* Saved Posts Link */}
+          <div className="card profile-actions">
+            <Link to="/saved-posts" className="profile-action-link">
+              <BookMarked size={20} />
+              <span>Saved Posts</span>
+            </Link>
           </div>
         </div>
 
@@ -71,13 +209,22 @@ const Profile = () => {
                 </button>
               ) : (
                 <div className="edit-actions">
-                  <button onClick={handleCancel} className="secondary">
+                  <button onClick={handleCancel} className="secondary" disabled={saving}>
                     <X size={18} />
                     Cancel
                   </button>
-                  <button onClick={handleSubmit}>
-                    <Save size={18} />
-                    Save Changes
+                  <button onClick={handleSubmit} disabled={saving}>
+                    {saving ? (
+                      <>
+                        <Loader2 size={18} className="spinner" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save size={18} />
+                        Save Changes
+                      </>
+                    )}
                   </button>
                 </div>
               )}
@@ -132,35 +279,67 @@ const Profile = () => {
               </div>
 
               {currentUser?.role === 'teacher' && (
-                <div className="form-group">
-                  <label htmlFor="expertise">Expertise (comma-separated)</label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      id="expertise"
-                      name="expertise"
-                      value={formData.expertise}
-                      onChange={handleChange}
-                      placeholder="JavaScript, React, Node.js"
-                    />
-                  ) : (
-                    <div className="expertise-display">
-                      {currentUser?.expertise?.map((skill, idx) => (
-                        <span key={idx} className="skill-tag">{skill}</span>
-                      )) || <p className="form-value">No expertise listed</p>}
-                    </div>
-                  )}
-                </div>
+                <>
+                  <div className="form-group">
+                    <label htmlFor="title">Professional Title</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        id="title"
+                        name="title"
+                        value={formData.title}
+                        onChange={handleChange}
+                        placeholder="e.g., Professor, Instructor"
+                      />
+                    ) : (
+                      <p className="form-value">{displayUser?.title || 'No title provided'}</p>
+                    )}
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="description">Professional Description</label>
+                    {isEditing ? (
+                      <textarea
+                        id="description"
+                        name="description"
+                        value={formData.description}
+                        onChange={handleChange}
+                        rows="4"
+                        placeholder="Tell us about your teaching experience"
+                      />
+                    ) : (
+                      <p className="form-value">{displayUser?.description || 'No description provided'}</p>
+                    )}
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="expertise">Expertise/Tags (comma-separated)</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        id="expertise"
+                        name="expertise"
+                        value={formData.expertise}
+                        onChange={handleChange}
+                        placeholder="JavaScript, React, Node.js"
+                      />
+                    ) : (
+                      <div className="expertise-display">
+                        {displayUser?.tags?.map((tag, idx) => (
+                          <span key={idx} className="skill-tag">{tag.name || tag}</span>
+                        )) || <p className="form-value">No expertise listed</p>}
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </form>
           </div>
 
-          {currentUser?.role === 'student' && currentUser?.enrolledCourses && (
+          {currentUser?.role === 'student' && (
             <div className="card">
               <h3>My Stats</h3>
               <div className="stats-row">
                 <div className="stat-item">
-                  <strong>{currentUser.enrolledCourses.length}</strong>
+                  <strong>{displayUser?.enrolledCourses?.length || 0}</strong>
                   <span>Enrolled Courses</span>
                 </div>
                 <div className="stat-item">

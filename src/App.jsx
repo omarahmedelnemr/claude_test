@@ -10,6 +10,7 @@ import CourseDetail from './pages/Common/CourseDetail';
 import CoursePlayer from './pages/Student/CoursePlayer';
 import TeacherList from './pages/Common/TeacherList';
 import Community from './pages/Common/Community';
+import SavedPosts from './pages/Common/SavedPosts';
 import BlogList from './pages/Common/BlogList';
 import BlogDetail from './pages/Common/BlogDetail';
 import QASection from './pages/Common/QASection';
@@ -40,7 +41,7 @@ const AppRoutes = () => {
   const getDashboard = () => {
     if (!currentUser) return <Navigate to="/login" replace />;
 
-    switch (currentUser.user?.role) {
+    switch (currentUser.role) {
       case 'admin':
         return <AdminDashboard />;
       case 'teacher':
@@ -63,6 +64,7 @@ const AppRoutes = () => {
         <Route path="courses/:id" element={<CourseDetail />} />
         <Route path="teachers" element={<TeacherList />} />
         <Route path="community" element={<Community />} />
+        <Route path="saved-posts" element={<ProtectedRoute><SavedPosts /></ProtectedRoute>} />
         <Route path="blog" element={<BlogList />} />
         <Route path="blog/:id" element={<BlogDetail />} />
         <Route path="qa" element={<QASection />} />

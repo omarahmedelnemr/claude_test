@@ -59,13 +59,9 @@ const Signup = () => {
     setLoading(true);
 
     try {
-      // TODO: Integrate Firebase Authentication first
-      // For now, using a placeholder token - Firebase integration needed
-      // The backend requires a Firebase token for signup
-      const firebaseToken = 'placeholder-token'; // Replace with actual Firebase token
-      
+      // Remove confirmPassword from userData before sending to backend
       const { confirmPassword, ...userData } = formData;
-      const result = await signup(userData, formData.role, firebaseToken);
+      const result = await signup(userData, formData.role);
 
       if (result.success) {
         if (result.requiresVerification) {

@@ -107,7 +107,13 @@ const Navbar = () => {
         {currentUser ? (
           <>
             <Link to="/profile" className="user-profile">
-              <img src={currentUser.avatar} alt={currentUser.name} />
+              <img 
+                src={currentUser.profileImage || currentUser.avatar || '/default-avatar.png'} 
+                alt={currentUser.name || 'User'} 
+                onError={(e) => {
+                  e.target.src = '/default-avatar.png';
+                }}
+              />
               <div className="user-info">
                 <span className="user-name">{currentUser.name}</span>
                 <span className="user-role">{currentUser.role}</span>
