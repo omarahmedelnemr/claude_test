@@ -4,6 +4,7 @@
 }
 
 .page-header h1 {
+  text-align: start;
   margin-bottom: 0.5em;
   color: var(--text-dark);
 }

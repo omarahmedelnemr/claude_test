@@ -256,6 +256,7 @@ input::placeholder, textarea::placeholder {
 }
 
 .page-header h1 {
+  text-align: start;
   margin-bottom: 0.5rem;
   background: var(--primary-gradient);
   -webkit-background-clip: text;

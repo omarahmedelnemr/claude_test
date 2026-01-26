@@ -97,8 +97,8 @@ const BlogList = () => {
       <div className="page-header">
         <div>
           <h1>Blog Articles</h1>
-          <p>Insights and knowledge from our expert teachers</p>
         </div>
+        <p>Insights and knowledge from our expert teachers</p>
         {currentUser?.role === 'teacher' && (
           <Link to="/blog/create" className="create-article-btn">
             <Plus size={18} />
