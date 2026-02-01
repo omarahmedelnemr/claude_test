@@ -176,6 +176,17 @@ const CourseList = () => {
                     </span>
                   )}
                 </div>
+                {course.isEnrolled && course.progress !== undefined && (
+                  <div className="course-progress-bar" style={{ marginBottom: '0.5rem' }}>
+                    <div
+                      className="progress-fill"
+                      style={{ width: `${course.progress}%` }}
+                    ></div>
+                    <span className="progress-text" style={{ fontSize: '0.875rem', color: '#666' }}>
+                      {course.progress}% Complete
+                    </span>
+                  </div>
+                )}
                 <Link 
                   to={`/courses/${course.id || course.courseID}`} 
                   className="enroll-btn"

@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import courseService from '../../services/courseService';
-import { BookOpen, Users, Star, DollarSign, Edit, Loader2 } from 'lucide-react';
+import { BookOpen, Users, Star, DollarSign, Edit, Loader2, Plus } from 'lucide-react';
 import '../Student/StudentDashboard.css';
 import './MyCourses.css';
 
 const MyCourses = () => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [myCourses, setMyCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -64,9 +65,31 @@ const MyCourses = () => {
 
   return (
     <div className="container">
-      <div className="page-header">
-        <h1>My Courses</h1>
-        <p>Manage and track your courses</p>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1em' }}>
+        <div>
+          <h1>My Courses</h1>
+          <p>Manage and track your courses</p>
+        </div>
+        <button
+          className="btn-primary"
+          onClick={() => navigate('/courses/create')}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.5em', 
+            padding: '0.75em 1.5em',
+            background: 'var(--primary-color)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '1em'
+          }}
+        >
+          <Plus size={20} />
+          <span>Create New Course</span>
+        </button>
       </div>
 
       {error && (
@@ -145,7 +168,11 @@ const MyCourses = () => {
                       <h3>{course.title}</h3>
                       {course.subject && <p className="course-category">{course.subject}</p>}
                     </div>
-                    <button className="icon-btn">
+                    <button 
+                      className="icon-btn"
+                      onClick={() => navigate(`/courses/edit/${courseId}`)}
+                      title="Edit Course"
+                    >
                       <Edit size={18} />
                     </button>
                   </div>
@@ -195,6 +222,27 @@ const MyCourses = () => {
           <BookOpen size={64} color="#ccc" />
           <h3>No Courses Yet</h3>
           <p>Create your first course and start teaching</p>
+          <button
+            className="btn-primary"
+            onClick={() => navigate('/courses/create')}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.5em', 
+              padding: '0.75em 1.5em',
+              marginTop: '1.5em',
+              background: 'var(--primary-color)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              fontSize: '1em'
+            }}
+          >
+            <Plus size={20} />
+            <span>Create Your First Course</span>
+          </button>
         </div>
       )}
     </div>

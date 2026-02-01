@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import courseService from '../../services/courseService';
-import { Clock, Users as UsersIcon, BarChart, Star, BookOpen, Loader2 } from 'lucide-react';
+import { Clock, Users as UsersIcon, BarChart, Star, BookOpen, Loader2, Settings } from 'lucide-react';
 import './CourseDetail.css';
 
 const CourseDetail = () => {
@@ -28,9 +28,13 @@ const CourseDetail = () => {
       setLoading(true);
       setError('');
       
-      // Fetch course details
+      // Fetch course details (API will check enrollment if session exists)
       const courseData = await courseService.getCourseDetails(id);
       setCourse(courseData);
+      
+      // Set enrollment status from API response (isEnrolled field)
+      // Default to false if not provided (no user or not enrolled)
+      setIsEnrolled(courseData.isEnrolled === true);
       
       // Fetch teacher info if available
       if (courseData.teacherID || courseData.teacher?.id) {
@@ -53,22 +57,6 @@ const CourseDetail = () => {
       } catch (err) {
         console.error('Error fetching lectures:', err);
       }
-
-      // Check enrollment status
-      if (currentUser?.id && currentUser?.role === 'student') {
-        try {
-          const enrollments = await courseService.getStudentEnrollments({
-            studentID: currentUser.id,
-            limit: 100,
-          });
-          const enrollment = Array.isArray(enrollments) 
-            ? enrollments.find(e => (e.courseID || e.course?.id || e.courseID) === id)
-            : (enrollments.enrollments || []).find(e => (e.courseID || e.course?.id) === id);
-          setIsEnrolled(!!enrollment);
-        } catch (err) {
-          console.error('Error checking enrollment:', err);
-        }
-      }
     } catch (err) {
       console.error('Error fetching course:', err);
       setError(err.message || 'Failed to load course details');
@@ -90,6 +78,7 @@ const CourseDetail = () => {
 
     try {
       setEnrolling(true);
+      // studentID is optional - backend will use session if not provided
       await courseService.enrollInCourse(id, currentUser.id);
       setIsEnrolled(true);
       alert('Successfully enrolled in the course!');
@@ -253,9 +242,35 @@ const CourseDetail = () => {
                   Continue Learning
                 </button>
               ) : isTeacher ? (
-                <button disabled className="enroll-button" style={{ backgroundColor: '#ccc' }}>
-                  Your Course
-                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75em' }}>
+                  <button 
+                    onClick={() => navigate(`/courses/${id}/manage`)}
+                    className="enroll-button"
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      gap: '0.5em',
+                      backgroundColor: 'var(--primary-color)'
+                    }}
+                  >
+                    <Settings size={18} />
+                    <span>Manage Content</span>
+                  </button>
+                  <button 
+                    onClick={() => navigate(`/courses/edit/${id}`)}
+                    className="enroll-button"
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      gap: '0.5em',
+                      backgroundColor: '#6c757d'
+                    }}
+                  >
+                    <span>Edit Course Info</span>
+                  </button>
+                </div>
               ) : (
                 <button 
                   onClick={handleEnroll} 

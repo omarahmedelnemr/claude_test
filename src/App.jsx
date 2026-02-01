@@ -17,6 +17,8 @@ import CreateArticle from './pages/Teacher/CreateArticle';
 import QASection from './pages/Common/QASection';
 import Profile from './pages/Common/Profile';
 import MyCourses from './pages/Teacher/MyCourses';
+import CourseEditor from './pages/Teacher/CourseEditor';
+import CourseContentManager from './pages/Teacher/CourseContentManager';
 import EnrolledCourses from './pages/Student/EnrolledCourses';
 import LectureSchedule from './pages/Teacher/LectureSchedule';
 import AdvancedAnalytics from './pages/Teacher/AdvancedAnalytics';
@@ -97,6 +99,33 @@ const AppRoutes = () => {
         />
 
         <Route
+          path="courses/create"
+          element={
+            <ProtectedRoute allowedRoles={['teacher']}>
+              <CourseEditor />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="courses/edit/:id"
+          element={
+            <ProtectedRoute allowedRoles={['teacher']}>
+              <CourseEditor />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="courses/:id/manage"
+          element={
+            <ProtectedRoute allowedRoles={['teacher']}>
+              <CourseContentManager />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="schedule"
           element={
             <ProtectedRoute allowedRoles={['teacher']}>
@@ -133,15 +162,6 @@ const AppRoutes = () => {
         />
 
         <Route
-          path="course-player/:id"
-          element={
-            <ProtectedRoute allowedRoles={['student']}>
-              <CoursePlayer />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
           path="admin/*"
           element={
             <ProtectedRoute allowedRoles={['admin']}>
@@ -150,6 +170,16 @@ const AppRoutes = () => {
           }
         />
       </Route>
+
+      {/* Course Player route outside Layout to hide navbar */}
+      <Route
+        path="course-player/:id"
+        element={
+          <ProtectedRoute allowedRoles={['student']}>
+            <CoursePlayer />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 };

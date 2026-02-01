@@ -51,14 +51,16 @@ export const courseService = {
   /**
    * Enroll in a course
    * @param {string} courseID - Course ID
-   * @param {string} studentID - Student ID
+   * @param {string} studentID - Student ID (optional - will be taken from session if not provided)
    * @returns {Promise} API response
    */
   enrollInCourse: async (courseID, studentID) => {
-    const response = await api.post('/courses/student/enroll', {
-      courseID,
-      studentID,
-    });
+    const requestBody = { courseID };
+    // Only include studentID if provided (otherwise backend uses session)
+    if (studentID) {
+      requestBody.studentID = studentID;
+    }
+    const response = await api.post('/courses/student/enroll', requestBody);
     return response.data;
   },
 
@@ -176,13 +178,16 @@ export const courseService = {
   /**
    * Get student's course progress
    * @param {string} courseID - Course ID
-   * @param {string} studentID - Student ID
+   * @param {string} studentID - Student ID (optional - will be taken from session if not provided)
    * @returns {Promise} API response with progress data
    */
   getCourseProgress: async (courseID, studentID) => {
-    const response = await api.get('/courses/student/course-progress', {
-      params: { courseID, studentID },
-    });
+    const params = { courseID };
+    // Only include studentID if provided (otherwise backend uses session)
+    if (studentID) {
+      params.studentID = studentID;
+    }
+    const response = await api.get('/courses/student/course-progress', { params });
     return response.data;
   },
 
@@ -202,7 +207,7 @@ export const courseService = {
    * Submit form answers
    * @param {Object} submissionData - Submission data
    * @param {string} submissionData.contentID - Content ID
-   * @param {string} submissionData.studentID - Student ID
+   * @param {string} submissionData.studentID - Student ID (optional - will be taken from session if not provided)
    * @param {Object} submissionData.answers - Answers object (questionID: answer)
    * @returns {Promise} API response with score
    */
@@ -212,18 +217,32 @@ export const courseService = {
   },
 
   /**
+   * Update content viewing time and auto-complete if threshold met
+   * @param {Object} timeData - Time tracking data
+   * @param {string} timeData.contentID - Content ID
+   * @param {string} timeData.studentID - Student ID (optional - will be taken from session if not provided)
+   * @param {number} timeData.viewingTime - Additional viewing time in seconds
+   * @returns {Promise} API response with progress percentage and completion status
+   */
+  updateContentViewingTime: async (timeData) => {
+    const response = await api.post('/courses/student/update-viewing-time', timeData);
+    return response.data;
+  },
+
+  /**
    * Mark content as completed
-   * @param {string} lectureID - Lecture ID
+   * @param {string} lectureID - Lecture ID (optional, not used by backend)
    * @param {string} contentID - Content ID
-   * @param {string} studentID - Student ID
+   * @param {string} studentID - Student ID (optional - will be taken from session if not provided)
    * @returns {Promise} API response
    */
   markContentCompleted: async (lectureID, contentID, studentID) => {
-    const response = await api.post('/courses/student/mark-completed', {
-      lectureID,
-      contentID,
-      studentID,
-    });
+    const requestBody = { contentID };
+    // Only include studentID if provided (otherwise backend uses session)
+    if (studentID) {
+      requestBody.studentID = studentID;
+    }
+    const response = await api.post('/courses/student/mark-completed', requestBody);
     return response.data;
   },
 
@@ -367,6 +386,126 @@ export const courseService = {
   getStudentsProgress: async (courseID, teacherID) => {
     const response = await api.get('/courses/teacher/students-progress', {
       params: { courseID, teacherID },
+    });
+    return response.data;
+  },
+
+  // ==================== Lecture Management ====================
+
+  /**
+   * Create a new lecture for a course
+   * @param {Object} lectureData - Lecture data
+   * @param {string} lectureData.courseID - Course ID
+   * @param {string} lectureData.teacherID - Teacher ID
+   * @param {string} lectureData.title - Lecture title
+   * @param {string} lectureData.description - Lecture description
+   * @param {number} lectureData.completionPoints - Completion points
+   * @param {string} lectureData.thumbnailUrl - Thumbnail URL
+   * @returns {Promise} API response
+   */
+  createLecture: async (lectureData) => {
+    const response = await api.post('/courses/teacher/lecture', lectureData);
+    return response.data;
+  },
+
+  /**
+   * Update a lecture
+   * @param {Object} lectureData - Lecture data
+   * @param {string} lectureData.lectureID - Lecture ID
+   * @param {string} lectureData.teacherID - Teacher ID
+   * @param {Object} lectureData - Other lecture fields to update
+   * @returns {Promise} API response
+   */
+  updateLecture: async (lectureData) => {
+    const response = await api.put('/courses/teacher/lecture', lectureData);
+    return response.data;
+  },
+
+  /**
+   * Delete a lecture
+   * @param {string} lectureID - Lecture ID
+   * @param {string} teacherID - Teacher ID
+   * @returns {Promise} API response
+   */
+  deleteLecture: async (lectureID, teacherID) => {
+    const response = await api.delete('/courses/teacher/lecture', {
+      data: { lectureID, teacherID },
+    });
+    return response.data;
+  },
+
+  /**
+   * Get lectures for a course (teacher view)
+   * @param {string} courseID - Course ID
+   * @param {string} teacherID - Teacher ID
+   * @returns {Promise} API response with lectures
+   */
+  getCourseLecturesTeacher: async (courseID, teacherID) => {
+    const response = await api.get('/courses/teacher/lectures', {
+      params: { courseID, teacherID },
+    });
+    return response.data;
+  },
+
+  // ==================== Content Management ====================
+
+  /**
+   * Create lecture content (Video, PDF, Article, or Form)
+   * @param {Object} contentData - Content data
+   * @param {string} contentData.lectureID - Lecture ID
+   * @param {string} contentData.teacherID - Teacher ID
+   * @param {string} contentData.title - Content title
+   * @param {string} contentData.contentType - Content type (video, pdf, article, form)
+   * @param {string} contentData.description - Content description
+   * @param {string} contentData.fileUrl - File URL (for video/pdf)
+   * @param {number} contentData.fileSize - File size in bytes
+   * @param {number} contentData.duration - Duration in minutes (for video)
+   * @param {number} contentData.estimatedViewingTime - Estimated viewing time in minutes
+   * @param {string} contentData.articleContent - Article content HTML (for article)
+   * @param {number} contentData.totalPoints - Total points (for form)
+   * @param {boolean} contentData.hasAnswerModel - Has answer model (for form)
+   * @returns {Promise} API response
+   */
+  createContent: async (contentData) => {
+    const response = await api.post('/courses/teacher/content', contentData);
+    return response.data;
+  },
+
+  /**
+   * Update lecture content
+   * @param {Object} contentData - Content data
+   * @param {string} contentData.contentID - Content ID
+   * @param {string} contentData.teacherID - Teacher ID
+   * @param {Object} contentData - Other content fields to update
+   * @returns {Promise} API response
+   */
+  updateContent: async (contentData) => {
+    const response = await api.put('/courses/teacher/content', contentData);
+    return response.data;
+  },
+
+  /**
+   * Delete lecture content
+   * @param {string} contentID - Content ID
+   * @param {string} teacherID - Teacher ID
+   * @returns {Promise} API response
+   */
+  deleteContent: async (contentID, teacherID) => {
+    const response = await api.delete('/courses/teacher/content', {
+      data: { contentID, teacherID },
+    });
+    return response.data;
+  },
+
+  /**
+   * Get content for a lecture (teacher view)
+   * @param {string} lectureID - Lecture ID
+   * @param {string} teacherID - Teacher ID
+   * @returns {Promise} API response with content list
+   */
+  getLectureContentTeacher: async (lectureID, teacherID) => {
+    const response = await api.get('/courses/teacher/content-list', {
+      params: { lectureID, teacherID },
     });
     return response.data;
   },
