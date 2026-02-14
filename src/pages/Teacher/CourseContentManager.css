@@ -82,7 +82,71 @@
 .lectures-list {
   display: flex;
   flex-direction: column;
+  gap: 1.5em;
+}
+
+.section-container {
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5em;
+  background: #e8f0f5;
+  border-bottom: 2px solid var(--border-color);
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.section-header:hover {
+  background: #d0e0e8;
+}
+
+.section-header-left {
+  display: flex;
+  align-items: center;
   gap: 1em;
+  flex: 1;
+}
+
+.section-title {
+  margin: 0;
+  color: var(--text-dark);
+  font-size: 1.4em;
+  font-weight: 600;
+}
+
+.section-description {
+  margin: 0.5em 0 0 0;
+  color: var(--text-light);
+  font-size: 0.9em;
+}
+
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.section-lectures {
+  padding: 1em;
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.empty-state-small {
+  text-align: center;
+  padding: 2em 1em;
+  color: var(--text-light);
+  background: white;
+  border-radius: 6px;
+  border: 1px dashed var(--border-color);
 }
 
 .lecture-card {
@@ -100,7 +164,7 @@
 .lecture-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   padding: 1.5em;
   cursor: pointer;
   transition: background-color 0.3s ease;
@@ -262,6 +326,19 @@
   margin: 0;
   color: var(--text-dark);
   font-size: 1em;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  flex-wrap: wrap;
+}
+
+.question-count-badge {
+  padding: 0.25em 0.75em;
+  background: #e0e7ff;
+  color: #4338ca;
+  border-radius: 12px;
+  font-size: 0.75em;
+  font-weight: 500;
 }
 
 .content-description {
@@ -403,6 +480,66 @@
   margin-top: 0.5em;
   color: var(--text-light);
   font-size: 0.85em;
+}
+
+.file-url-input-group {
+  display: flex;
+  gap: 0.5em;
+  align-items: stretch;
+}
+
+.file-url-input-group input {
+  flex: 1;
+}
+
+.file-url-input-group .btn-small {
+  white-space: nowrap;
+  padding: 0.75rem 1rem;
+}
+
+.upload-progress {
+  width: 100%;
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  margin-top: 0.5rem;
+  overflow: hidden;
+}
+
+.upload-progress-bar {
+  height: 100%;
+  background: var(--primary-color);
+  transition: width 0.3s ease;
+  border-radius: 2px;
+}
+
+.uploading-indicator {
+  color: var(--primary-color);
+  font-weight: 500;
+  font-size: 0.85em;
+}
+
+.file-info {
+  display: block;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #f3f4f6;
+  border-radius: 4px;
+  color: #374151;
+  font-size: 0.8em;
+  word-break: break-all;
+}
+
+.thumbnail-preview {
+  margin-top: 0.5rem;
+}
+
+.thumbnail-preview img {
+  max-width: 200px;
+  max-height: 120px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  object-fit: cover;
 }
 
 .form-row {

@@ -22,7 +22,8 @@ import CourseContentManager from './pages/Teacher/CourseContentManager';
 import EnrolledCourses from './pages/Student/EnrolledCourses';
 import LectureSchedule from './pages/Teacher/LectureSchedule';
 import AdvancedAnalytics from './pages/Teacher/AdvancedAnalytics';
-import Messaging from './pages/Teacher/Messaging';
+import Messaging from './pages/Common/Messaging';
+import { AgoraChatProvider } from './contexts/AgoraChatContext';
 import Layout from './components/Common/Layout';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -146,7 +147,7 @@ const AppRoutes = () => {
         <Route
           path="messages"
           element={
-            <ProtectedRoute allowedRoles={['teacher']}>
+            <ProtectedRoute allowedRoles={['teacher', 'student', 'parent']}>
               <Messaging />
             </ProtectedRoute>
           }
@@ -187,9 +188,11 @@ const AppRoutes = () => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <AppRoutes />
-      </Router>
+      <AgoraChatProvider>
+        <Router>
+          <AppRoutes />
+        </Router>
+      </AgoraChatProvider>
     </AuthProvider>
   );
 }

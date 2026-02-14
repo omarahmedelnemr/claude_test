@@ -53,7 +53,23 @@ const CourseDetail = () => {
       // Fetch lectures
       try {
         const lecturesData = await courseService.getCourseLectures(id);
-        setLectures(Array.isArray(lecturesData) ? lecturesData : lecturesData.lectures || []);
+        // Handle both old format (flat array) and new format (sections with lectures)
+        let lecturesArray = [];
+        if (Array.isArray(lecturesData)) {
+          // Check if it's the new format (array of sections with section objects)
+          const firstItem = lecturesData[0];
+          if (firstItem && firstItem.lectures !== undefined && Array.isArray(firstItem.lectures)) {
+            // New format: array of sections with lectures property
+            // Flatten all lectures from all sections
+            lecturesArray = lecturesData.flatMap(sectionData => sectionData.lectures || []);
+          } else {
+            // Old format: flat array of lectures
+            lecturesArray = lecturesData;
+          }
+        } else {
+          lecturesArray = lecturesData.lectures || [];
+        }
+        setLectures(lecturesArray);
       } catch (err) {
         console.error('Error fetching lectures:', err);
       }

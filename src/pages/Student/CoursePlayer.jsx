@@ -22,7 +22,7 @@ const CoursePlayer = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   
   const [course, setCourse] = useState(null);
-  const [lectures, setLectures] = useState([]);
+  const [sections, setSections] = useState([]); // Array of {section: {...}, lectures: [...]}
   const [selectedLecture, setSelectedLecture] = useState(null);
   const [selectedContent, setSelectedContent] = useState(null);
   const [contentItems, setContentItems] = useState({}); // lectureID -> content array
@@ -39,6 +39,7 @@ const CoursePlayer = () => {
   const [pdfStartTime, setPdfStartTime] = useState(null);
   const [contentProgress, setContentProgress] = useState({}); // contentID -> progress percentage
   const [lastUpdateTime, setLastUpdateTime] = useState({}); // contentID -> last update timestamp
+  const [expandedSectionId, setExpandedSectionId] = useState(null); // Section ID or 'unsectioned' for lectures without section
   const [expandedLectureId, setExpandedLectureId] = useState(null); // Only one lecture expanded at a time
 
   useEffect(() => {
@@ -85,12 +86,37 @@ const CoursePlayer = () => {
       const courseData = await courseService.getCourseDetails(courseID);
       setCourse(courseData);
 
-      // Fetch course lectures
-      const lecturesData = await courseService.getCourseLectures(courseID);
-      const lecturesArray = Array.isArray(lecturesData) 
-        ? lecturesData 
-        : lecturesData.lectures || [];
-      setLectures(lecturesArray);
+      // Fetch course sections with lectures
+      const sectionsData = await courseService.getCourseLectures(courseID);
+      
+      // Handle both old format (flat array) and new format (sections with lectures)
+      let sectionsArray = [];
+      let hasSections = false;
+      
+      if (Array.isArray(sectionsData)) {
+        // Check if it's the new format (array of sections with section objects)
+        // New format: [{section: {...}, lectures: [...]}, ...]
+        // Old format: [{id: 1, title: "...", section: null, ...}, ...]
+        const firstItem = sectionsData[0];
+        if (firstItem && firstItem.lectures !== undefined && Array.isArray(firstItem.lectures)) {
+          // New format: array of sections with lectures property
+          sectionsArray = sectionsData;
+          hasSections = sectionsArray.some(s => s.section !== null && s.section !== undefined);
+        } else {
+          // Old format: flat array of lectures (no sections)
+          // Each item is a lecture, not a section
+          sectionsArray = [{
+            section: null, // No section
+            lectures: sectionsData
+          }];
+          hasSections = false;
+        }
+      } else {
+        // Fallback
+        sectionsArray = [];
+        hasSections = false;
+      }
+      setSections(sectionsArray);
 
       // Fetch student progress
       if (currentUser.role === 'student') {
@@ -113,103 +139,377 @@ const CoursePlayer = () => {
         }
       }
 
-      // Determine which lecture to expand and select
-      if (lecturesArray.length > 0) {
+      // Determine which section/lecture to expand and select
+      // Flatten all lectures from all sections for easier searching
+      const allLectures = sectionsArray.flatMap(sectionData => sectionData.lectures || []);
+      
+      // If course has NO sections, load ALL lectures and their content at once
+      let loadedContentItems = {};
+      if (!hasSections && allLectures.length > 0) {
+        console.log('Loading entire course at once (no sections)');
+        // Load all content for all lectures in parallel
+        const contentPromises = allLectures.map(async (lecture) => {
+          try {
+            const contentData = await courseService.getLectureContent(lecture.id);
+            const contentArray = Array.isArray(contentData)
+              ? contentData
+              : contentData.content || [];
+            return { lectureId: lecture.id, content: contentArray };
+          } catch (err) {
+            console.error(`Error fetching content for lecture ${lecture.id}:`, err);
+            return { lectureId: lecture.id, content: [] };
+          }
+        });
+        
+        // Wait for all content to load
+        const allContentResults = await Promise.all(contentPromises);
+        allContentResults.forEach(({ lectureId, content }) => {
+          loadedContentItems[lectureId] = content;
+        });
+        setContentItems(loadedContentItems);
+        console.log(`Loaded content for ${allContentResults.length} lectures`);
+      }
+      
+      if (allLectures.length > 0) {
         // Check URL for active lecture
         const urlLectureId = searchParams.get('lecture');
         let targetLecture = null;
         let targetContent = null;
+        let targetSection = null;
 
         if (urlLectureId) {
-          // Find lecture from URL
-          targetLecture = lecturesArray.find(l => l.id === urlLectureId);
+          // Find lecture from URL across all sections
+          for (const sectionData of sectionsArray) {
+            targetLecture = sectionData.lectures?.find(l => l.id === urlLectureId);
+            if (targetLecture) {
+              targetSection = sectionData.section;
+              break;
+            }
+          }
+          
           if (targetLecture) {
-            // Try to load content for this lecture
-            try {
-              const contentData = await courseService.getLectureContent(targetLecture.id);
-              const contentArray = Array.isArray(contentData)
-                ? contentData
-                : contentData.content || [];
-              setContentItems(prev => ({
-                ...prev,
-                [targetLecture.id]: contentArray
-              }));
-              
-              // Check URL for active content
-              const urlContentId = searchParams.get('content');
-              if (urlContentId && contentArray.length > 0) {
-                targetContent = contentArray.find(c => c.id === urlContentId);
+            // Content should already be loaded if no sections, or load section if has sections
+            if (hasSections) {
+              // Find the section containing this lecture and load all lectures in that section
+              for (const sectionData of sectionsArray) {
+                if (sectionData.lectures?.some(l => l.id === targetLecture.id)) {
+                  // Load all content for all lectures in this section using sectionID
+                  const lecturesToLoad = (sectionData.lectures || []).filter(lecture => !contentItems[lecture.id]);
+                  if (lecturesToLoad.length > 0 && sectionData.section) {
+                    try {
+                      // Load all content for the entire section in ONE request
+                      const allContentData = await courseService.getLectureContent(null, sectionData.section.id);
+                      const allContentArray = Array.isArray(allContentData)
+                        ? allContentData
+                        : allContentData.content || [];
+                      
+                      // Organize content by lecture ID
+                      const newContentItems = { ...contentItems };
+                      allContentArray.forEach((content) => {
+                        const lectureId = content.lecture?.id || content.lectureID;
+                        if (lectureId) {
+                          if (!newContentItems[lectureId]) {
+                            newContentItems[lectureId] = [];
+                          }
+                          newContentItems[lectureId].push(content);
+                        }
+                      });
+                      
+                      // Sort content by order within each lecture
+                      Object.keys(newContentItems).forEach(lectureId => {
+                        newContentItems[lectureId].sort((a, b) => (a.order || 0) - (b.order || 0));
+                      });
+                      
+                      setContentItems(newContentItems);
+                    } catch (err) {
+                      console.error(`Error fetching content for section ${sectionData.section.id}:`, err);
+                      // Fallback to lecture-by-lecture loading
+                      const contentPromises = lecturesToLoad.map(async (lecture) => {
+                        try {
+                          const contentData = await courseService.getLectureContent(lecture.id);
+                          const contentArray = Array.isArray(contentData)
+                            ? contentData
+                            : contentData.content || [];
+                          return { lectureId: lecture.id, content: contentArray };
+                        } catch (err) {
+                          console.error(`Error fetching content for lecture ${lecture.id}:`, err);
+                          return { lectureId: lecture.id, content: [] };
+                        }
+                      });
+                      const results = await Promise.all(contentPromises);
+                      const newContentItems = { ...contentItems };
+                      results.forEach(({ lectureId, content }) => {
+                        newContentItems[lectureId] = content;
+                      });
+                      setContentItems(newContentItems);
+                    }
+                  }
+                  break;
+                }
               }
-              
-              if (!targetContent && contentArray.length > 0) {
-                targetContent = contentArray[0];
-              }
-            } catch (err) {
-              console.error('Error fetching lecture content:', err);
+            }
+            
+            // Get content for target lecture (use loadedContentItems if no sections, otherwise contentItems)
+            const lectureContent = (!hasSections ? loadedContentItems : contentItems)[targetLecture.id] || [];
+            
+            // Check URL for active content
+            const urlContentId = searchParams.get('content');
+            if (urlContentId && lectureContent.length > 0) {
+              targetContent = lectureContent.find(c => c.id === urlContentId);
+            }
+            
+            if (!targetContent && lectureContent.length > 0) {
+              targetContent = lectureContent[0];
             }
           }
         }
 
         // If no URL lecture or not found, find first uncompleted content
         if (!targetLecture || !targetContent) {
-          for (const lecture of lecturesArray) {
-            const lectureData = progress?.lectures?.find(l => l.lecture?.id === lecture.id);
-            const isUnlocked = lecturesArray.indexOf(lecture) === 0 || lectureData?.isUnlocked !== false;
+          // If has sections, we'll load section by section, so just find the target
+          // If no sections, content is already loaded, so just find the target
+          for (const sectionData of sectionsArray) {
+            // Determine if section is unlocked (section-based unlocking)
+            // A section is unlocked if:
+            // 1. It's the first section in the course, OR
+            // 2. All lectures in the previous section are completed
+            let isSectionUnlocked = false;
+            if (sectionsArray.indexOf(sectionData) === 0) {
+              // First section is always unlocked
+              isSectionUnlocked = true;
+            } else {
+              // Check if previous section is completed
+              const prevSectionIndex = sectionsArray.indexOf(sectionData) - 1;
+              if (prevSectionIndex >= 0) {
+                const prevSection = sectionsArray[prevSectionIndex];
+                const prevSectionLectures = prevSection.lectures || [];
+                // Check if all lectures in previous section are completed
+                const allPrevCompleted = prevSectionLectures.every(lecture => {
+                  const lectureData = progress?.lectures?.find(l => l.lecture?.id === lecture.id);
+                  return lectureData?.isCompleted === true;
+                });
+                isSectionUnlocked = allPrevCompleted;
+              }
+            }
             
-            if (!isUnlocked) continue;
+            for (const lecture of sectionData.lectures || []) {
+              // If section is unlocked, all lectures in it are unlocked
+              const isUnlocked = isSectionUnlocked;
+              
+              if (!isUnlocked) continue;
 
-            try {
-              const contentData = await courseService.getLectureContent(lecture.id);
-              const contentArray = Array.isArray(contentData)
-                ? contentData
-                : contentData.content || [];
-              setContentItems(prev => ({
-                ...prev,
-                [lecture.id]: contentArray
-              }));
+              // Get lecture data from progress
+              const lectureData = progress?.lectures?.find(l => l.lecture?.id === lecture.id);
 
-              // Find first uncompleted content
-              for (const content of contentArray) {
-                const progressContent = lectureData?.contents?.find(c => c.id === content.id);
-                const isCompleted = Boolean(progressContent?.isCompleted);
-                
-                if (!isCompleted) {
-                  targetLecture = lecture;
-                  targetContent = content;
-                  break;
+              // Get content (should be loaded if no sections, or load section if has sections)
+              let lectureContent = (!hasSections ? loadedContentItems : contentItems)[lecture.id];
+              
+              if (!lectureContent && hasSections) {
+                // Load all content for all lectures in this section using sectionID
+                const lecturesToLoad = (sectionData.lectures || []).filter(l => !contentItems[l.id]);
+                if (lecturesToLoad.length > 0 && sectionData.section) {
+                  try {
+                    // Load all content for the entire section in ONE request
+                    const allContentData = await courseService.getLectureContent(null, sectionData.section.id);
+                    const allContentArray = Array.isArray(allContentData)
+                      ? allContentData
+                      : allContentData.content || [];
+                    
+                    // Organize content by lecture ID
+                    const newContentItems = { ...contentItems };
+                    allContentArray.forEach((content) => {
+                      const lectureId = content.lecture?.id || content.lectureID;
+                      if (lectureId) {
+                        if (!newContentItems[lectureId]) {
+                          newContentItems[lectureId] = [];
+                        }
+                        newContentItems[lectureId].push(content);
+                      }
+                    });
+                    
+                    // Sort content by order within each lecture
+                    Object.keys(newContentItems).forEach(lectureId => {
+                      newContentItems[lectureId].sort((a, b) => (a.order || 0) - (b.order || 0));
+                    });
+                    
+                    setContentItems(newContentItems);
+                    lectureContent = newContentItems[lecture.id];
+                  } catch (err) {
+                    console.error(`Error fetching content for section ${sectionData.section.id}:`, err);
+                    // Fallback to lecture-by-lecture loading
+                    const contentPromises = lecturesToLoad.map(async (l) => {
+                      try {
+                        const contentData = await courseService.getLectureContent(l.id);
+                        const contentArray = Array.isArray(contentData)
+                          ? contentData
+                          : contentData.content || [];
+                        return { lectureId: l.id, content: contentArray };
+                      } catch (err) {
+                        console.error(`Error fetching content for lecture ${l.id}:`, err);
+                        return { lectureId: l.id, content: [] };
+                      }
+                    });
+                    const results = await Promise.all(contentPromises);
+                    const newContentItems = { ...contentItems };
+                    results.forEach(({ lectureId, content }) => {
+                      newContentItems[lectureId] = content;
+                    });
+                    setContentItems(newContentItems);
+                    lectureContent = newContentItems[lecture.id];
+                  }
+                }
+              }
+
+              if (lectureContent) {
+                // Find first uncompleted content
+                for (const content of lectureContent) {
+                  const progressContent = lectureData?.contents?.find(c => c.id === content.id);
+                  const isCompleted = Boolean(progressContent?.isCompleted);
+                  
+                  if (!isCompleted) {
+                    targetLecture = lecture;
+                    targetContent = content;
+                    targetSection = sectionData.section;
+                    break;
+                  }
                 }
               }
 
               if (targetLecture && targetContent) break;
-            } catch (err) {
-              console.error('Error fetching lecture content:', err);
+            }
+            if (targetLecture && targetContent) break;
+          }
+        }
+
+        // If still no target, use first lecture and first content from first unlocked section
+        if (!targetLecture && sectionsArray.length > 0) {
+          // Find first unlocked section
+          let firstUnlockedSection = null;
+          for (let i = 0; i < sectionsArray.length; i++) {
+            const sectionData = sectionsArray[i];
+            let isSectionUnlocked = false;
+            if (i === 0) {
+              // First section is always unlocked
+              isSectionUnlocked = true;
+            } else {
+              // Check if previous section is completed
+              const prevSection = sectionsArray[i - 1];
+              const prevSectionLectures = prevSection.lectures || [];
+              const allPrevCompleted = prevSectionLectures.every(prevLecture => {
+                const prevLectureData = progress?.lectures?.find(l => l.lecture?.id === prevLecture.id);
+                return prevLectureData?.isCompleted === true;
+              });
+              isSectionUnlocked = allPrevCompleted;
+            }
+            
+            if (isSectionUnlocked && sectionData.lectures && sectionData.lectures.length > 0) {
+              firstUnlockedSection = sectionData;
+              break;
+            }
+          }
+          
+          if (firstUnlockedSection && firstUnlockedSection.lectures && firstUnlockedSection.lectures.length > 0) {
+            targetLecture = firstUnlockedSection.lectures[0];
+            targetSection = firstUnlockedSection.section;
+            
+            // Get content (should be loaded if no sections)
+            if (hasSections && firstUnlockedSection.section) {
+              // Load all content for all lectures in this section using sectionID
+              const lecturesToLoad = firstUnlockedSection.lectures.filter(lecture => !contentItems[lecture.id]);
+              
+              if (lecturesToLoad.length > 0) {
+                try {
+                  // Load all content for the entire section in ONE request
+                  const allContentData = await courseService.getLectureContent(null, firstUnlockedSection.section.id);
+                  const allContentArray = Array.isArray(allContentData)
+                    ? allContentData
+                    : allContentData.content || [];
+                  
+                  // Organize content by lecture ID
+                  const newContentItems = { ...contentItems };
+                  allContentArray.forEach((content) => {
+                    const lectureId = content.lecture?.id || content.lectureID;
+                    if (lectureId) {
+                      if (!newContentItems[lectureId]) {
+                        newContentItems[lectureId] = [];
+                      }
+                      newContentItems[lectureId].push(content);
+                    }
+                  });
+                  
+                  // Sort content by order within each lecture
+                  Object.keys(newContentItems).forEach(lectureId => {
+                    newContentItems[lectureId].sort((a, b) => (a.order || 0) - (b.order || 0));
+                  });
+                  
+                  setContentItems(newContentItems);
+                  
+                  // Get content for target lecture
+                  if (newContentItems[targetLecture.id] && newContentItems[targetLecture.id].length > 0) {
+                    targetContent = newContentItems[targetLecture.id][0];
+                  }
+                } catch (err) {
+                  console.error(`Error fetching content for section ${firstSection.section.id}:`, err);
+                  // Fallback to lecture-by-lecture loading
+                  const contentPromises = lecturesToLoad.map(async (lecture) => {
+                    try {
+                      const contentData = await courseService.getLectureContent(lecture.id);
+                      const contentArray = Array.isArray(contentData)
+                        ? contentData
+                        : contentData.content || [];
+                      return { lectureId: lecture.id, content: contentArray };
+                    } catch (err) {
+                      console.error(`Error fetching content for lecture ${lecture.id}:`, err);
+                      return { lectureId: lecture.id, content: [] };
+                    }
+                  });
+                  const results = await Promise.all(contentPromises);
+                  const newContentItems = { ...contentItems };
+                  results.forEach(({ lectureId, content }) => {
+                    newContentItems[lectureId] = content;
+                  });
+                  setContentItems(newContentItems);
+                  
+                  // Get content for target lecture
+                  const targetResult = results.find(r => r.lectureId === targetLecture.id);
+                  if (targetResult && targetResult.content.length > 0) {
+                    targetContent = targetResult.content[0];
+                  }
+                }
+              } else if (contentItems[targetLecture.id] && contentItems[targetLecture.id].length > 0) {
+                targetContent = contentItems[targetLecture.id][0];
+              }
+            } else {
+              // No sections - content already loaded
+              if (loadedContentItems[targetLecture.id] && loadedContentItems[targetLecture.id].length > 0) {
+                targetContent = loadedContentItems[targetLecture.id][0];
+              }
             }
           }
         }
 
-        // If still no target, use first lecture and first content
-        if (!targetLecture) {
-          targetLecture = lecturesArray[0];
-          try {
-            const contentData = await courseService.getLectureContent(targetLecture.id);
-            const contentArray = Array.isArray(contentData)
-              ? contentData
-              : contentData.content || [];
-            setContentItems(prev => ({
-              ...prev,
-              [targetLecture.id]: contentArray
-            }));
-            if (contentArray.length > 0) {
-              targetContent = contentArray[0];
-            }
-          } catch (err) {
-            console.error('Error fetching lecture content:', err);
-          }
-        }
-
-        // Set expanded lecture and select content
+        // Set expanded section/lecture and select content
         if (targetLecture) {
+          // Find the section containing this lecture
+          let targetSectionData = null;
+          for (const sectionData of sectionsArray) {
+            if (sectionData.lectures?.some(l => l.id === targetLecture.id)) {
+              targetSectionData = sectionData;
+              break;
+            }
+          }
+          
+          if (targetSectionData) {
+            const sectionId = targetSectionData.section ? targetSectionData.section.id : 'unsectioned';
+            setExpandedSectionId(sectionId);
+            
+            // If has sections, content should already be loaded for the section
+            // If no sections, content is already loaded for entire course
+            // No need to load again here
+          }
+          
           setExpandedLectureId(targetLecture.id);
+          
           // Update URL
           const newParams = new URLSearchParams(searchParams);
           newParams.set('lecture', targetLecture.id);
@@ -233,32 +533,158 @@ const CoursePlayer = () => {
     }
   };
 
-  const selectLecture = async (lecture) => {
+  const toggleSection = async (sectionData) => {
+    const sectionId = sectionData.section ? sectionData.section.id : 'unsectioned';
+    
+    // Toggle expanded state
+    if (expandedSectionId === sectionId) {
+      // Collapse
+      setExpandedSectionId(null);
+      setExpandedLectureId(null);
+    } else {
+      // Expand section
+      setExpandedSectionId(sectionId);
+      
+      // Check if we need to load content for this section
+      const lecturesToLoad = (sectionData.lectures || []).filter(lecture => !contentItems[lecture.id]);
+      
+      if (lecturesToLoad.length > 0 && sectionData.section) {
+        console.log(`Loading all content for section ${sectionId} (${lecturesToLoad.length} lectures)`);
+        
+        try {
+          // Load all content for the entire section in ONE request
+          const allContentData = await courseService.getLectureContent(null, sectionData.section.id);
+          const allContentArray = Array.isArray(allContentData)
+            ? allContentData
+            : allContentData.content || [];
+          
+          // Organize content by lecture ID
+          const newContentItems = { ...contentItems };
+          allContentArray.forEach((content) => {
+            const lectureId = content.lecture?.id || content.lectureID;
+            if (lectureId) {
+              if (!newContentItems[lectureId]) {
+                newContentItems[lectureId] = [];
+              }
+              newContentItems[lectureId].push(content);
+            }
+          });
+          
+          // Sort content by order within each lecture
+          Object.keys(newContentItems).forEach(lectureId => {
+            newContentItems[lectureId].sort((a, b) => (a.order || 0) - (b.order || 0));
+          });
+          
+          setContentItems(newContentItems);
+          console.log(`Loaded content for section ${sectionId} (${Object.keys(newContentItems).length} lectures)`);
+        } catch (err) {
+          console.error(`Error fetching content for section ${sectionId}:`, err);
+          // Fallback: load lecture by lecture if section request fails
+          const contentPromises = lecturesToLoad.map(async (lecture) => {
+            try {
+              const contentData = await courseService.getLectureContent(lecture.id);
+              const contentArray = Array.isArray(contentData)
+                ? contentData
+                : contentData.content || [];
+              return { lectureId: lecture.id, content: contentArray };
+            } catch (err) {
+              console.error(`Error fetching content for lecture ${lecture.id}:`, err);
+              return { lectureId: lecture.id, content: [] };
+            }
+          });
+          const results = await Promise.all(contentPromises);
+          const newContentItems = { ...contentItems };
+          results.forEach(({ lectureId, content }) => {
+            newContentItems[lectureId] = content;
+          });
+          setContentItems(newContentItems);
+        }
+      } else if (lecturesToLoad.length > 0 && !sectionData.section) {
+        // For unsectioned lectures (no sections), load all at once
+        console.log(`Loading ${lecturesToLoad.length} unsectioned lectures`);
+        const contentPromises = lecturesToLoad.map(async (lecture) => {
+          try {
+            const contentData = await courseService.getLectureContent(lecture.id);
+            const contentArray = Array.isArray(contentData)
+              ? contentData
+              : contentData.content || [];
+            return { lectureId: lecture.id, content: contentArray };
+          } catch (err) {
+            console.error(`Error fetching content for lecture ${lecture.id}:`, err);
+            return { lectureId: lecture.id, content: [] };
+          }
+        });
+        const results = await Promise.all(contentPromises);
+        const newContentItems = { ...contentItems };
+        results.forEach(({ lectureId, content }) => {
+          newContentItems[lectureId] = content;
+        });
+        setContentItems(newContentItems);
+      } else {
+        console.log(`All lectures for section ${sectionId} already loaded`);
+      }
+    }
+  };
+
+  const toggleLecture = (lecture) => {
+    // Toggle expanded state - no loading, content should already be loaded when section was expanded
+    if (expandedLectureId === lecture.id) {
+      // Collapse
+      setExpandedLectureId(null);
+    } else {
+      // Expand - just show the content, don't load it
+      // Content should already be loaded when the section was expanded
+      setExpandedLectureId(lecture.id);
+      
+      // If content is not loaded (shouldn't happen if section was expanded first), load it
+      if (!contentItems[lecture.id]) {
+        // This is a fallback - ideally content should be loaded when section expands
+        courseService.getLectureContent(lecture.id)
+          .then(contentData => {
+            const contentArray = Array.isArray(contentData)
+              ? contentData
+              : contentData.content || [];
+            setContentItems(prev => ({
+              ...prev,
+              [lecture.id]: contentArray
+            }));
+          })
+          .catch(err => {
+            console.error('Error fetching lecture content:', err);
+          });
+      }
+    }
+  };
+
+  const selectLecture = (lecture) => {
     setSelectedLecture(lecture);
     setSelectedContent(null);
     setQuizAnswers({});
     setQuizSubmitted(false);
     setQuizScore(null);
 
-    // Fetch content for this lecture if not already loaded
+    // Content should already be loaded when section was expanded
+    // Only load if not already available (fallback)
     if (!contentItems[lecture.id]) {
-      try {
-        const contentData = await courseService.getLectureContent(lecture.id);
-        const contentArray = Array.isArray(contentData)
-          ? contentData
-          : contentData.content || [];
-        setContentItems(prev => ({
-          ...prev,
-          [lecture.id]: contentArray
-        }));
+      // Fallback: load content if not already loaded
+      courseService.getLectureContent(lecture.id)
+        .then(contentData => {
+          const contentArray = Array.isArray(contentData)
+            ? contentData
+            : contentData.content || [];
+          setContentItems(prev => ({
+            ...prev,
+            [lecture.id]: contentArray
+          }));
 
-        // Select first content if available
-        if (contentArray.length > 0) {
-          selectContent(lecture, contentArray[0]);
-        }
-      } catch (err) {
-        console.error('Error fetching lecture content:', err);
-      }
+          // Select first content if available
+          if (contentArray.length > 0) {
+            selectContent(lecture, contentArray[0]);
+          }
+        })
+        .catch(err => {
+          console.error('Error fetching lecture content:', err);
+        });
     } else {
       // Content already loaded, select first one
       const content = contentItems[lecture.id];
@@ -300,17 +726,39 @@ const CoursePlayer = () => {
       setQuizScore(null);
     }
 
-    // If it's a form, fetch questions (only if not submitted)
-    if (content.contentType === 'form' && !formQuestions[content.id] && !submitted) {
+    // If it's a form, fetch questions (always fetch, even if submitted, to show answers)
+    if (content.contentType === 'form' && !formQuestions[content.id]) {
       try {
-        const questionsData = await courseService.getFormQuestions(content.id);
+        const questionsData = await courseService.getFormQuestions(content.id, currentUser?.id);
+        
+        // Handle new response format: {questions: [...], submission: {...}}
         const questionsArray = Array.isArray(questionsData)
           ? questionsData
           : questionsData.questions || [];
+        
         setFormQuestions(prev => ({
           ...prev,
           [content.id]: questionsArray
         }));
+        
+        // Load submitted answers from the response or from progress data
+        if (questionsData.submission && questionsData.submission.id) {
+          // If we have submission data in the response, use it
+          if (questionsData.submission.answers) {
+            setQuizAnswers(questionsData.submission.answers);
+          }
+        } else if (submitted && progress && progress.lectures) {
+          // Fallback to progress data
+          for (const lectureData of progress.lectures) {
+            if (lectureData.contents && Array.isArray(lectureData.contents)) {
+              const contentData = lectureData.contents.find(c => c.id === content.id);
+              if (contentData && contentData.submission && contentData.submission.answers) {
+                setQuizAnswers(contentData.submission.answers);
+                break;
+              }
+            }
+          }
+        }
       } catch (err) {
         console.error('Error fetching form questions:', err);
       }
@@ -329,19 +777,50 @@ const CoursePlayer = () => {
 
     try {
       setSubmitting(true);
+      
+      // Log answers being sent
+      console.log("=== SUBMITTING QUIZ ===");
+      console.log("Content ID:", selectedContent.id);
+      console.log("Student ID:", currentUser.id);
+      console.log("Answers being sent:", JSON.stringify(quizAnswers, null, 2));
+      
       const submissionData = await courseService.submitForm({
         contentID: selectedContent.id,
         studentID: currentUser.id,
         answers: quizAnswers
       });
+      
+      console.log("Submission response:", submissionData);
 
       // Calculate score from submission data
-      const totalPoints = selectedContent.totalPoints || 0;
+      const totalPoints = submissionData.totalPoints || selectedContent.totalPoints || 0;
       const earnedPoints = submissionData.pointsEarned || 0;
       const score = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
       
       setQuizScore(score);
       setQuizSubmitted(true);
+      
+      // Store grading results for display
+      if (submissionData.gradingResults) {
+        // Update form questions with grading results
+        const currentQuestions = formQuestions[selectedContent.id] || [];
+        const updatedQuestions = currentQuestions.map(q => {
+          const gradingResult = submissionData.gradingResults.find(gr => gr.questionId === q.id);
+          if (gradingResult) {
+            return {
+              ...q,
+              studentAnswer: gradingResult.studentAnswer,
+              correctAnswer: gradingResult.correctAnswer,
+              isCorrect: gradingResult.isCorrect
+            };
+          }
+          return q;
+        });
+        setFormQuestions(prev => ({
+          ...prev,
+          [selectedContent.id]: updatedQuestions
+        }));
+      }
       
       // Refresh progress to get updated completion status
       const progressResponse = await courseService.getCourseProgress(courseID, currentUser.id);
@@ -382,6 +861,34 @@ const CoursePlayer = () => {
       }
     } catch (err) {
       console.error('Error updating viewing time:', err);
+    }
+  };
+
+  // Mark article as completed
+  const markArticleAsCompleted = async () => {
+    if (!selectedContent || !selectedLecture || !currentUser) return;
+
+    try {
+      setSubmitting(true);
+      await courseService.markContentCompleted(
+        selectedLecture.id,
+        selectedContent.id,
+        currentUser.id
+      );
+
+      // Refresh progress
+      const progressResponse = await courseService.getCourseProgress(courseID, currentUser.id);
+      const progressData = progressResponse.lectures || (Array.isArray(progressResponse) ? progressResponse : []);
+      const overallProgress = progressResponse.overallProgress !== undefined ? progressResponse.overallProgress : 0;
+      setProgress({
+        overallProgress: overallProgress,
+        lectures: progressData
+      });
+    } catch (err) {
+      console.error('Error marking article as completed:', err);
+      alert(err.message || 'Failed to mark article as completed. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -553,6 +1060,7 @@ const CoursePlayer = () => {
         );
 
       case 'article':
+        const isArticleCompleted = currentUser?.role === 'student' && isContentCompleted(selectedContent.id);
         return (
           <div className="article-viewer">
             <div className="article-header">
@@ -567,11 +1075,35 @@ const CoursePlayer = () => {
               className="article-content"
               dangerouslySetInnerHTML={{ __html: selectedContent.articleContent || '' }}
             />
-            {currentUser?.role === 'student' && isContentCompleted(selectedContent.id) && (
-              <div className="content-completed-badge">
-                <CheckCircle size={20} color="var(--success-color)" />
-                <span>Completed</span>
-              </div>
+            {currentUser?.role === 'student' && (
+              <>
+                {isArticleCompleted ? (
+                  <div className="content-completed-badge">
+                    <CheckCircle size={20} color="var(--success-color)" />
+                    <span>Completed</span>
+                  </div>
+                ) : (
+                  <div className="article-complete-section">
+                    <button
+                      className="btn btn-primary mark-read-btn"
+                      onClick={markArticleAsCompleted}
+                      disabled={submitting}
+                    >
+                      {submitting ? (
+                        <>
+                          <Loader2 size={18} className="spinning" />
+                          <span>Marking...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle size={18} />
+                          <span>Check I read it</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         );
@@ -580,30 +1112,27 @@ const CoursePlayer = () => {
         const isSubmitted = isQuizSubmitted(selectedContent.id);
         const questions = formQuestions[selectedContent.id] || [];
         
-        // If quiz is already submitted, show results
-        if (isSubmitted && !quizSubmitted) {
-          const score = getQuizScore(selectedContent.id);
-          return (
-            <div className="quiz-container">
-              <div className="quiz-header">
-                <h3>{selectedContent.title}</h3>
-                <p className="quiz-completed-badge">✓ Quiz Completed</p>
-              </div>
-              <div className="quiz-results">
-                <div className={`score-card ${score >= 70 ? 'pass' : 'fail'}`}>
-                  <h2>Your Score: {score}%</h2>
-                  <p>
-                    {score >= 70
-                      ? 'Congratulations! You passed!'
-                      : 'You completed this quiz.'}
-                  </p>
-                  <p className="quiz-locked-message">
-                    This quiz has been completed and cannot be retaken.
-                  </p>
-                </div>
-              </div>
-            </div>
-          );
+        // Get submission data if quiz is already submitted
+        let submissionData = null;
+        let submittedAnswers = {};
+        if (isSubmitted) {
+          // Get submission from progress data
+          if (progress && progress.lectures) {
+            for (const lectureData of progress.lectures) {
+              if (lectureData.contents && Array.isArray(lectureData.contents)) {
+                const content = lectureData.contents.find(c => c.id === selectedContent.id);
+                if (content && content.submission) {
+                  submissionData = content.submission;
+                  submittedAnswers = content.submission.answers || {};
+                  // Load submitted answers into quizAnswers state if not already loaded
+                  if (Object.keys(quizAnswers).length === 0) {
+                    setQuizAnswers(submittedAnswers);
+                  }
+                  break;
+                }
+              }
+            }
+          }
         }
 
         if (questions.length === 0 && !isSubmitted) {
@@ -614,56 +1143,118 @@ const CoursePlayer = () => {
           );
         }
 
+        // Get score for display
+        const displayScore = quizSubmitted ? quizScore : (isSubmitted ? getQuizScore(selectedContent.id) : null);
+        const showResults = quizSubmitted || isSubmitted;
+
         return (
           <div className="quiz-container">
-            <div className="quiz-header">
-              <h3>{selectedContent.title}</h3>
-              <p>{questions.length} questions</p>
-              {selectedContent.totalPoints && (
-                <p>Total Points: {selectedContent.totalPoints}</p>
-              )}
+            <div className="quiz-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5em' }}>
+                <h3 style={{ margin: 0 }}>{selectedContent.title}</h3>
+                {showResults && displayScore !== null && (
+                  <div className={`score-badge ${displayScore >= 70 ? 'pass' : 'fail'}`}>
+                    Score: {displayScore}%
+                  </div>
+                )}
+              </div>
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0.25em' }}>
+                <p>{questions.length} questions</p>
+                {selectedContent.totalPoints && (
+                  <p>Total Points: {selectedContent.totalPoints}</p>
+                )}
+              </div>
             </div>
 
-            {!quizSubmitted && !isSubmitted ? (
-              <>
-                <div className="quiz-questions">
-                  {questions.map((question, idx) => (
-                    <div key={question.id || idx} className="question-card">
+            {showResults && displayScore !== null && (
+              <div className="quiz-results">
+                <div className={`score-card ${displayScore >= 70 ? 'pass' : 'fail'}`}>
+                  <h2>Your Score: {displayScore}%</h2>
+                  <p>
+                    {displayScore >= 70
+                      ? 'Congratulations! You passed!'
+                      : 'Keep learning and try again!'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {questions.length > 0 && (
+              <div className="quiz-questions">
+                {questions.map((question, idx) => {
+                  // Get submitted answer for this question
+                  // Use studentAnswer from question if available (from backend), otherwise from state
+                  const submittedAnswer = question.studentAnswer !== undefined 
+                    ? question.studentAnswer 
+                    : (submittedAnswers[question.id] || quizAnswers[question.id]);
+                  
+                  // Use isCorrect from backend if available (more reliable than frontend calculation)
+                  const isCorrect = question.isCorrect !== undefined 
+                    ? question.isCorrect 
+                    : false;
+                  
+                  // Get correct answer from question (if available)
+                  const correctAnswer = question.correctAnswer;
+                  
+                  return (
+                    <div key={question.id || idx} className={`question-card ${showResults ? 'submitted' : ''}`}>
                       <h4>
                         Question {idx + 1}: {question.questionText}
                         {question.required && <span className="required">*</span>}
                         {question.points > 0 && (
                           <span className="points">({question.points} points)</span>
                         )}
+                        {showResults && correctAnswer !== undefined && correctAnswer !== null && (
+                          <span className={`answer-indicator ${isCorrect ? 'correct' : 'incorrect'}`}>
+                            {isCorrect ? '✓ Correct' : '✗ Incorrect'}
+                          </span>
+                        )}
                       </h4>
 
                       {question.questionType === 'multiple_choice' && question.options && (
                         <div className="options">
-                          {question.options.map((option, optIdx) => (
-                            <label key={optIdx} className="option-label">
-                              <input
-                                type="radio"
-                                name={`question-${question.id}`}
-                                value={optIdx}
-                                onChange={() => handleQuizAnswer(question.id, optIdx)}
-                                checked={quizAnswers[question.id] === optIdx}
-                                required={question.required}
-                              />
-                              <span>{option}</span>
-                            </label>
-                          ))}
+                          {question.options.map((option, optIdx) => {
+                            const isSelected = submittedAnswer === optIdx || quizAnswers[question.id] === optIdx;
+                            const isCorrectOption = correctAnswer === optIdx;
+                            
+                            return (
+                              <label 
+                                key={optIdx} 
+                                className={`option-label ${showResults ? 'disabled' : ''} ${showResults && isSelected && isCorrectOption ? 'correct-answer' : ''} ${showResults && isSelected && !isCorrectOption ? 'incorrect-answer' : ''}`}
+                              >
+                                <input
+                                  type="radio"
+                                  name={`question-${question.id}`}
+                                  value={optIdx}
+                                  onChange={() => handleQuizAnswer(question.id, optIdx)}
+                                  checked={isSelected}
+                                  disabled={showResults}
+                                  required={question.required && !showResults}
+                                />
+                                <span>{option}</span>
+                                {showResults && isCorrectOption && (
+                                  <span className="correct-mark">✓</span>
+                                )}
+                              </label>
+                            );
+                          })}
                         </div>
                       )}
 
                       {question.questionType === 'checkbox' && question.options && (
                         <div className="options">
                           {question.options.map((option, optIdx) => {
-                            const currentAnswers = quizAnswers[question.id];
+                            const currentAnswers = submittedAnswer || quizAnswers[question.id];
                             const isArray = Array.isArray(currentAnswers);
                             const isChecked = isArray && currentAnswers.includes(optIdx);
+                            const correctAnswers = Array.isArray(correctAnswer) ? correctAnswer : (correctAnswer !== undefined && correctAnswer !== null ? [correctAnswer] : []);
+                            const isCorrectOption = correctAnswers.includes(optIdx);
                             
                             return (
-                              <label key={optIdx} className="option-label">
+                              <label 
+                                key={optIdx} 
+                                className={`option-label ${showResults ? 'disabled' : ''} ${showResults && isChecked && isCorrectOption ? 'correct-answer' : ''} ${showResults && isChecked && !isCorrectOption ? 'incorrect-answer' : ''}`}
+                              >
                                 <input
                                   type="checkbox"
                                   name={`question-${question.id}-${optIdx}`}
@@ -678,8 +1269,12 @@ const CoursePlayer = () => {
                                     handleQuizAnswer(question.id, updated);
                                   }}
                                   checked={isChecked}
+                                  disabled={showResults}
                                 />
                                 <span>{option}</span>
+                                {showResults && isCorrectOption && (
+                                  <span className="correct-mark">✓</span>
+                                )}
                               </label>
                             );
                           })}
@@ -687,68 +1282,72 @@ const CoursePlayer = () => {
                       )}
 
                       {(question.questionType === 'short_answer' || question.questionType === 'long_answer') && (
-                        <textarea
-                          placeholder="Your answer"
-                          value={quizAnswers[question.id] || ''}
-                          onChange={(e) => handleQuizAnswer(question.id, e.target.value)}
-                          className="text-answer"
-                          rows={question.questionType === 'long_answer' ? 5 : 2}
-                          required={question.required}
-                        />
+                        <div>
+                          <textarea
+                            placeholder="Your answer"
+                            value={submittedAnswer || quizAnswers[question.id] || ''}
+                            onChange={(e) => handleQuizAnswer(question.id, e.target.value)}
+                            className="text-answer"
+                            rows={question.questionType === 'long_answer' ? 5 : 2}
+                            required={question.required && !showResults}
+                            disabled={showResults}
+                          />
+                          {showResults && correctAnswer !== undefined && correctAnswer !== null && (
+                            <div className="correct-answer-display">
+                              <strong>Correct Answer:</strong> {correctAnswer}
+                            </div>
+                          )}
+                        </div>
                       )}
 
                       {question.questionType === 'true_false' && (
                         <div className="options">
-                          <label className="option-label">
+                          <label className={`option-label ${showResults ? 'disabled' : ''} ${showResults && submittedAnswer === true && correctAnswer === true ? 'correct-answer' : ''} ${showResults && submittedAnswer === true && correctAnswer !== true ? 'incorrect-answer' : ''}`}>
                             <input
                               type="radio"
                               name={`question-${question.id}`}
                               value="true"
                               onChange={() => handleQuizAnswer(question.id, true)}
-                              checked={quizAnswers[question.id] === true}
-                              required={question.required}
+                              checked={submittedAnswer === true || quizAnswers[question.id] === true}
+                              required={question.required && !showResults}
+                              disabled={showResults}
                             />
                             <span>True</span>
+                            {showResults && correctAnswer === true && (
+                              <span className="correct-mark">✓</span>
+                            )}
                           </label>
-                          <label className="option-label">
+                          <label className={`option-label ${showResults ? 'disabled' : ''} ${showResults && submittedAnswer === false && correctAnswer === false ? 'correct-answer' : ''} ${showResults && submittedAnswer === false && correctAnswer !== false ? 'incorrect-answer' : ''}`}>
                             <input
                               type="radio"
                               name={`question-${question.id}`}
                               value="false"
                               onChange={() => handleQuizAnswer(question.id, false)}
-                              checked={quizAnswers[question.id] === false}
-                              required={question.required}
+                              checked={submittedAnswer === false || quizAnswers[question.id] === false}
+                              required={question.required && !showResults}
+                              disabled={showResults}
                             />
                             <span>False</span>
+                            {showResults && correctAnswer === false && (
+                              <span className="correct-mark">✓</span>
+                            )}
                           </label>
                         </div>
                       )}
                     </div>
-                  ))}
-                </div>
-
-                <button
-                  onClick={handleQuizSubmit}
-                  className="submit-quiz-btn"
-                  disabled={submitting}
-                >
-                  {submitting ? 'Submitting...' : 'Submit Quiz'}
-                </button>
-              </>
-            ) : (
-              <div className="quiz-results">
-                <div className={`score-card ${quizScore >= 70 ? 'pass' : 'fail'}`}>
-                  <h2>Your Score: {quizScore}%</h2>
-                  <p>
-                    {quizScore >= 70
-                      ? 'Congratulations! You passed!'
-                      : 'Keep learning and try again!'}
-                  </p>
-                  <p className="quiz-locked-message">
-                    This quiz has been completed and cannot be retaken.
-                  </p>
-                </div>
+                  );
+                })}
               </div>
+            )}
+
+            {!showResults && (
+              <button
+                onClick={handleQuizSubmit}
+                className="submit-quiz-btn"
+                disabled={submitting}
+              >
+                {submitting ? 'Submitting...' : 'Submit Quiz'}
+              </button>
             )}
           </div>
         );
@@ -812,15 +1411,64 @@ const CoursePlayer = () => {
 
           <div className="lectures-sidebar">
             <h3>Course Content</h3>
-            {lectures.length === 0 ? (
-              <p>No lectures available yet.</p>
+            {sections.length === 0 ? (
+              <p>No content available yet.</p>
             ) : (
-              lectures.map((lecture, lectureIdx) => {
-                const lectureContent = contentItems[lecture.id] || [];
-                const lectureData = progress?.lectures?.find(l => l.lecture?.id === lecture.id);
-                const isLectureUnlocked = lectureIdx === 0 || lectureData?.isUnlocked !== false;
-                const isLectureCompleted = lectureData?.isCompleted === true;
-                const isExpanded = expandedLectureId === lecture.id;
+              sections.map((sectionData, sectionIdx) => {
+                const sectionId = sectionData.section ? sectionData.section.id : 'unsectioned';
+                const isSectionExpanded = expandedSectionId === sectionId;
+                const sectionLectures = sectionData.lectures || [];
+                
+                // Flatten all lectures to get global index for unlocking logic
+                const allLectures = sections.flatMap(s => s.lectures || []);
+                
+                return (
+                  <div key={sectionId || sectionIdx} className="section-container">
+                    {sectionData.section && (
+                      <div 
+                        className="section-title clickable"
+                        onClick={() => toggleSection(sectionData)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        {isSectionExpanded ? (
+                          <ChevronDown size={16} style={{ marginRight: '4px' }} />
+                        ) : (
+                          <ChevronRight size={16} style={{ marginRight: '4px' }} />
+                        )}
+                        <span style={{ fontWeight: 600, fontSize: '1.05em' }}>
+                          {sectionData.section.title}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {isSectionExpanded && sectionLectures.map((lecture, lectureIdx) => {
+                      const lectureContent = contentItems[lecture.id] || [];
+                      const lectureData = progress?.lectures?.find(l => l.lecture?.id === lecture.id);
+                      
+                      // Section-based unlocking: if section is unlocked, all lectures in it are unlocked
+                      let isSectionUnlocked = false;
+                      if (sectionIdx === 0) {
+                        // First section is always unlocked
+                        isSectionUnlocked = true;
+                      } else {
+                        // Check if previous section is completed
+                        const prevSectionIndex = sectionIdx - 1;
+                        if (prevSectionIndex >= 0) {
+                          const prevSection = sections[prevSectionIndex];
+                          const prevSectionLectures = prevSection.lectures || [];
+                          // Check if all lectures in previous section are completed
+                          const allPrevCompleted = prevSectionLectures.every(prevLecture => {
+                            const prevLectureData = progress?.lectures?.find(l => l.lecture?.id === prevLecture.id);
+                            return prevLectureData?.isCompleted === true;
+                          });
+                          isSectionUnlocked = allPrevCompleted;
+                        }
+                      }
+                      
+                      // If section is unlocked, all lectures in it are unlocked
+                      const isLectureUnlocked = isSectionUnlocked;
+                      const isLectureCompleted = lectureData?.isCompleted === true;
+                      const isExpanded = expandedLectureId === lecture.id;
                 
                 return (
                   <div key={lecture.id || lectureIdx} className={`lecture-section ${!isLectureUnlocked ? 'locked' : ''} ${isExpanded ? 'expanded' : ''}`}>
@@ -844,7 +1492,7 @@ const CoursePlayer = () => {
                     </div>
                     {!isLectureUnlocked && (
                       <p className="lecture-locked-message" style={{ fontSize: '0.875rem', color: '#999', fontStyle: 'italic', marginTop: '0.25rem' }}>
-                        Complete previous lecture to unlock
+                        Complete previous section to unlock
                       </p>
                     )}
                     {lecture.description && (
@@ -866,19 +1514,14 @@ const CoursePlayer = () => {
                             // Check if content is completed (strict boolean check)
                             const contentCompleted = Boolean(progressContent?.isCompleted);
                             const quizSubmitted = content.contentType === 'form' && isQuizSubmitted(content.id);
-                            const isDisabled = quizSubmitted; // Disable only quizzes that are submitted
+                            // Quizzes should always be accessible, even after submission (inputs will be disabled inside)
 
                             return (
                               <div key={content.id || contentIdx} className="content-item-wrapper">
                                 <button
-                                  className={`content-item ${isSelected ? 'active' : ''} ${contentCompleted ? 'completed' : ''} ${isDisabled ? 'disabled' : ''}`}
-                                  onClick={() => !isDisabled && selectContent(lecture, content)}
-                                  disabled={isDisabled}
-                                  title={
-                                    isDisabled 
-                                      ? 'This quiz has been completed and cannot be retaken' 
-                                      : ''
-                                  }
+                                  className={`content-item ${isSelected ? 'active' : ''} ${contentCompleted ? 'completed' : ''}`}
+                                  onClick={() => selectContent(lecture, content)}
+                                  title=""
                                 >
                                   {content.contentType === 'video' && <PlayCircle size={16} />}
                                   {content.contentType === 'pdf' && <FileText size={16} />}
@@ -905,6 +1548,9 @@ const CoursePlayer = () => {
                         )}
                       </div>
                     )}
+                    </div>
+                  );
+                })}
                   </div>
                 );
               })

@@ -1,0 +1,395 @@
+.messaging-page {
+    max-width: 1400px;
+}
+
+.messaging-page .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2em;
+}
+
+.messaging-container {
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 2em;
+    min-height: calc(100vh - 300px);
+}
+
+.messaging-sidebar {
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.search-box {
+    padding: 0.5em 0.75em;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    border-bottom: 1px solid var(--border-color);
+    max-height: max-content;
+    flex-shrink: 0;
+}
+
+.search-box input {
+    border: none;
+    padding: 0.25em 0;
+    width: 100%;
+    font-size: 0.9em;
+}
+
+.search-box input:focus {
+    outline: none;
+    border: none;
+}
+
+.conversations-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.conversation-item {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+    padding: 1em;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.conversation-item:hover {
+    background-color: #f9fafb;
+}
+
+.conversation-item.active {
+    background-color: rgba(42, 143, 155, 0.05);
+    border-left: 3px solid var(--primary-color);
+}
+
+.avatar-wrapper {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.avatar-wrapper img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.status-dot {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+.status-dot.online {
+    background-color: #22c55e;
+}
+
+.status-dot.offline {
+    background-color: #9ca3af;
+}
+
+.conversation-item img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.conversation-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.conversation-info h4 {
+    margin: 0 0 0.25em 0;
+    font-size: 0.95em;
+    color: var(--text-dark);
+}
+
+.conversation-info p {
+    margin: 0;
+    font-size: 0.85em;
+    color: var(--text-light);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.contact-role {
+    text-transform: capitalize;
+}
+
+.last-message-preview {
+    font-size: 0.82em;
+    color: var(--text-light);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.message-time-small {
+    font-size: 0.72em;
+    color: var(--text-light);
+    white-space: nowrap;
+}
+
+.conversation-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5em;
+}
+
+.unread-badge {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0.15em 0.5em;
+    border-radius: 10px;
+    font-size: 0.75em;
+    font-weight: 600;
+}
+
+.messaging-main {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+}
+
+.chat-header {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+    padding: 1.25em;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.chat-header .avatar-wrapper img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.chat-header h3 {
+    margin: 0;
+    font-size: 1em;
+    color: var(--text-dark);
+}
+
+.chat-header .status {
+    font-size: 0.8em;
+    color: var(--text-light);
+    text-transform: capitalize;
+}
+
+.chat-header .status.online-text {
+    color: #22c55e;
+}
+
+.chat-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 0.5em;
+}
+
+.icon-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: var(--text-dark);
+}
+
+.icon-btn:hover {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 1.5em;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 1em;
+    max-height: 500px;
+}
+
+.message {
+    display: flex;
+    gap: 0.75em;
+    align-items: flex-end;
+}
+
+.message.sent {
+    justify-content: flex-end;
+}
+
+.message img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.message-content {
+    max-width: 60%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35em;
+}
+
+.message.received .message-content {
+    background-color: #f9fafb;
+    border-radius: 12px 12px 12px 4px;
+}
+
+.message.sent .message-content {
+    background-color: var(--primary-color);
+    color: white;
+    border-radius: 12px 12px 4px 12px;
+    align-items: flex-end;
+}
+
+.message-content p {
+    margin: 0;
+    padding: 0.75em 1em;
+    font-size: 0.95em;
+    line-height: 1.5;
+}
+
+.message-time {
+    font-size: 0.75em;
+    opacity: 0.7;
+    padding: 0 1em 0.5em;
+}
+
+.chat-input {
+    display: flex;
+    gap: 1em;
+    padding: 1em;
+    border-top: 1px solid var(--border-color);
+}
+
+.chat-input input {
+    flex: 1;
+    padding: 0.75em 1em;
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    font-size: 0.95em;
+}
+
+.chat-input input:disabled {
+    opacity: 0.6;
+}
+
+.chat-input button {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.chat-input button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3em;
+    text-align: center;
+}
+
+.empty-state.small {
+    padding: 2em;
+}
+
+.empty-state h3 {
+    margin: 1em 0 0.5em 0;
+    color: var(--text-dark);
+}
+
+.empty-state p {
+    margin: 0;
+    color: var(--text-light);
+}
+
+/* Video call message styling */
+.video-call-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.5em 0;
+}
+
+.video-call-message p {
+    padding: 0.5em 1em !important;
+    font-weight: 500;
+}
+
+.join-call-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0.4em 1em;
+    border: none;
+    border-radius: 20px;
+    background: var(--primary-color);
+    color: white;
+    font-size: 0.85em;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    margin: 0 1em 0.5em;
+}
+
+.join-call-btn:hover {
+    background: var(--primary-dark);
+}
+
+@media (max-width: 1024px) {
+    .messaging-container {
+        grid-template-columns: 300px 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .messaging-container {
+        grid-template-columns: 1fr;
+    }
+
+    .messaging-sidebar {
+        max-height: 400px;
+    }
+
+    .message-content {
+        max-width: 80%;
+    }
+}

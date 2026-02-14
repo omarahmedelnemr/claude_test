@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import courseService from '../../services/courseService';
-import { ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Plus } from 'lucide-react';
 import './CourseEditor.css';
 
 const CourseEditor = () => {
@@ -27,6 +27,8 @@ const CourseEditor = () => {
   const [fetching, setFetching] = useState(isEditMode);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+  const thumbnailFileInputRef = useRef(null);
 
   useEffect(() => {
     if (isEditMode && currentUser?.id) {
@@ -72,6 +74,72 @@ const CourseEditor = () => {
       ...prev,
       [name]: name === 'price' || name === 'maxStudents' ? parseFloat(value) || 0 : value
     }));
+  };
+
+  const handleThumbnailUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image size must be less than 5MB');
+      return;
+    }
+
+    try {
+      setUploadingThumbnail(true);
+      setError('');
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(`${API_BASE_URL}/upload`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload thumbnail');
+      }
+
+      const imageUrl = await response.json();
+      const cleanUrl = typeof imageUrl === 'string' ? imageUrl.replace(/^["']|["']$/g, '') : imageUrl;
+      
+      setFormData(prev => ({
+        ...prev,
+        thumbnailUrl: cleanUrl.trim()
+      }));
+
+      setSuccess('Thumbnail uploaded successfully!');
+      
+      // Reset file input
+      if (thumbnailFileInputRef.current) {
+        thumbnailFileInputRef.current.value = '';
+      }
+    } catch (err) {
+      console.error('Error uploading thumbnail:', err);
+      setError(err.message || 'Failed to upload thumbnail');
+    } finally {
+      setUploadingThumbnail(false);
+    }
+  };
+
+  const triggerThumbnailUpload = () => {
+    if (thumbnailFileInputRef.current) {
+      thumbnailFileInputRef.current.click();
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -220,14 +288,44 @@ const CourseEditor = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="thumbnailUrl">Thumbnail URL</label>
+            <label htmlFor="thumbnailUrl">
+              Thumbnail URL {uploadingThumbnail && <span className="uploading-indicator">(Uploading...)</span>}
+            </label>
+            <div className="file-url-input-group">
+              <input
+                type="url"
+                id="thumbnailUrl"
+                name="thumbnailUrl"
+                value={formData.thumbnailUrl}
+                onChange={handleChange}
+                placeholder="https://example.com/image.jpg or upload an image"
+                disabled={uploadingThumbnail}
+              />
+              <button
+                type="button"
+                className="btn-secondary btn-small"
+                onClick={triggerThumbnailUpload}
+                disabled={uploadingThumbnail}
+              >
+                {uploadingThumbnail ? (
+                  <>
+                    <Loader2 size={16} className="spinner" />
+                    <span>Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus size={16} />
+                    <span>Upload</span>
+                  </>
+                )}
+              </button>
+            </div>
             <input
-              type="url"
-              id="thumbnailUrl"
-              name="thumbnailUrl"
-              value={formData.thumbnailUrl}
-              onChange={handleChange}
-              placeholder="https://example.com/image.jpg"
+              type="file"
+              ref={thumbnailFileInputRef}
+              accept="image/*"
+              onChange={handleThumbnailUpload}
+              style={{ display: 'none' }}
             />
             {formData.thumbnailUrl && (
               <div className="thumbnail-preview">

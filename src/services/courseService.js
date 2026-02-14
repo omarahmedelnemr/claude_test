@@ -152,9 +152,9 @@ export const courseService = {
   },
 
   /**
-   * Get course lectures (student view)
+   * Get course lectures (student view) - now returns sections with lectures
    * @param {string} courseID - Course ID
-   * @returns {Promise} API response with lectures
+   * @returns {Promise} API response with sections and lectures
    */
   getCourseLectures: async (courseID) => {
     const response = await api.get('/courses/student/lectures', {
@@ -164,13 +164,32 @@ export const courseService = {
   },
 
   /**
+   * Get course sections with lectures (student view)
+   * @param {string} courseID - Course ID
+   * @returns {Promise} API response with sections and lectures
+   */
+  getCourseSections: async (courseID) => {
+    const response = await api.get('/courses/student/sections', {
+      params: { courseID },
+    });
+    return response.data;
+  },
+
+  /**
    * Get lecture content (student view)
-   * @param {string} lectureID - Lecture ID
+   * @param {string} lectureID - Lecture ID (optional if sectionID provided)
+   * @param {string} sectionID - Section ID (optional if lectureID provided)
    * @returns {Promise} API response with content
    */
-  getLectureContent: async (lectureID) => {
+  getLectureContent: async (lectureID, sectionID = null) => {
+    const params = {};
+    if (sectionID) {
+      params.sectionID = sectionID;
+    } else if (lectureID) {
+      params.lectureID = lectureID;
+    }
     const response = await api.get('/courses/student/content', {
-      params: { lectureID },
+      params,
     });
     return response.data;
   },
@@ -196,9 +215,13 @@ export const courseService = {
    * @param {string} contentID - Content ID
    * @returns {Promise} API response with form questions
    */
-  getFormQuestions: async (contentID) => {
+  getFormQuestions: async (contentID, studentID = null) => {
+    const params = { contentID };
+    if (studentID) {
+      params.studentID = studentID;
+    }
     const response = await api.get('/courses/student/form-questions', {
-      params: { contentID },
+      params,
     });
     return response.data;
   },
@@ -447,6 +470,62 @@ export const courseService = {
     return response.data;
   },
 
+  // ==================== Section Management ====================
+
+  /**
+   * Create a new section for a course
+   * @param {Object} sectionData - Section data
+   * @param {string} sectionData.courseID - Course ID
+   * @param {string} sectionData.teacherID - Teacher ID
+   * @param {string} sectionData.title - Section title
+   * @param {string} sectionData.description - Section description (optional)
+   * @returns {Promise} API response
+   */
+  createSection: async (sectionData) => {
+    const response = await api.post('/courses/teacher/section', sectionData);
+    return response.data;
+  },
+
+  /**
+   * Update a section
+   * @param {Object} sectionData - Section data
+   * @param {string} sectionData.sectionID - Section ID
+   * @param {string} sectionData.teacherID - Teacher ID
+   * @param {string} sectionData.title - Section title (optional)
+   * @param {string} sectionData.description - Section description (optional)
+   * @param {number} sectionData.order - Order number (optional)
+   * @returns {Promise} API response
+   */
+  updateSection: async (sectionData) => {
+    const response = await api.put('/courses/teacher/section', sectionData);
+    return response.data;
+  },
+
+  /**
+   * Delete a section
+   * @param {string} sectionID - Section ID
+   * @param {string} teacherID - Teacher ID
+   * @returns {Promise} API response
+   */
+  deleteSection: async (sectionID, teacherID) => {
+    const response = await api.delete('/courses/teacher/section', {
+      data: { sectionID, teacherID },
+    });
+    return response.data;
+  },
+
+  /**
+   * Get all sections for a course (teacher view)
+   * @param {string} courseID - Course ID
+   * @returns {Promise} API response with sections and lectures
+   */
+  getCourseSectionsTeacher: async (courseID) => {
+    const response = await api.get('/courses/teacher/sections', {
+      params: { courseID },
+    });
+    return response.data;
+  },
+
   // ==================== Content Management ====================
 
   /**
@@ -506,6 +585,66 @@ export const courseService = {
   getLectureContentTeacher: async (lectureID, teacherID) => {
     const response = await api.get('/courses/teacher/content-list', {
       params: { lectureID, teacherID },
+    });
+    return response.data;
+  },
+
+  // ==================== Form Question Management ====================
+
+  /**
+   * Get form questions for a content item (teacher view)
+   * @param {string} contentID - Content ID
+   * @param {string} teacherID - Teacher ID
+   * @returns {Promise} API response with questions list
+   */
+  getFormQuestionsTeacher: async (contentID, teacherID) => {
+    const response = await api.get('/courses/teacher/form-questions', {
+      params: { contentID, teacherID },
+    });
+    return response.data;
+  },
+
+  /**
+   * Add a question to a form
+   * @param {Object} questionData - Question data
+   * @param {string} questionData.contentID - Content ID
+   * @param {string} questionData.teacherID - Teacher ID
+   * @param {string} questionData.questionText - Question text
+   * @param {string} questionData.questionType - Question type (multiple_choice, checkbox, short_answer, long_answer, true_false, dropdown, linear_scale, date, time, file_upload)
+   * @param {Array} questionData.options - Options array (for multiple_choice, checkbox, dropdown)
+   * @param {any} questionData.correctAnswer - Correct answer(s) for auto-correction
+   * @param {number} questionData.points - Points for this question
+   * @param {boolean} questionData.required - Whether question is required
+   * @param {Object} questionData.settings - Additional settings (min/max for scale, etc.)
+   * @returns {Promise} API response
+   */
+  addFormQuestion: async (questionData) => {
+    const response = await api.post('/courses/teacher/form-question', questionData);
+    return response.data;
+  },
+
+  /**
+   * Update a form question
+   * @param {Object} questionData - Question data
+   * @param {string} questionData.questionID - Question ID
+   * @param {string} questionData.teacherID - Teacher ID
+   * @param {Object} questionData - Other question fields to update
+   * @returns {Promise} API response
+   */
+  updateFormQuestion: async (questionData) => {
+    const response = await api.put('/courses/teacher/form-question', questionData);
+    return response.data;
+  },
+
+  /**
+   * Delete a form question
+   * @param {string} questionID - Question ID
+   * @param {string} teacherID - Teacher ID
+   * @returns {Promise} API response
+   */
+  deleteFormQuestion: async (questionID, teacherID) => {
+    const response = await api.delete('/courses/teacher/form-question', {
+      data: { questionID, teacherID },
     });
     return response.data;
   },

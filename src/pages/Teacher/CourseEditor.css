@@ -218,6 +218,11 @@
   animation: spin 1s linear infinite;
 }
 
+.btn-small {
+  padding: 0.5em 1em;
+  font-size: 0.875rem;
+}
+
 @media (max-width: 768px) {
   .course-editor-container {
     padding: 1em;
@@ -240,5 +245,27 @@
     width: 100%;
     justify-content: center;
   }
+}
+
+.file-url-input-group {
+  display: flex;
+  gap: 0.5em;
+  align-items: stretch;
+}
+
+.file-url-input-group input {
+  flex: 1;
+}
+
+.file-url-input-group .btn-small {
+  white-space: nowrap;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+}
+
+.uploading-indicator {
+  color: var(--primary-color);
+  font-weight: 500;
+  font-size: 0.85em;
 }
 

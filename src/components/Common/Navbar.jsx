@@ -89,9 +89,22 @@ const Navbar = () => {
         )}
 
         {currentUser?.role === 'student' && (
-          <Link to="/enrolled-courses" className="nav-link">
-            <BookMarked size={20} />
-            <span>My Learning</span>
+          <>
+            <Link to="/enrolled-courses" className="nav-link">
+              <BookMarked size={20} />
+              <span>My Learning</span>
+            </Link>
+            <Link to="/messages" className="nav-link">
+              <Mail size={20} />
+              <span>Messages</span>
+            </Link>
+          </>
+        )}
+
+        {currentUser?.role === 'parent' && (
+          <Link to="/messages" className="nav-link">
+            <Mail size={20} />
+            <span>Messages</span>
           </Link>
         )}
 
