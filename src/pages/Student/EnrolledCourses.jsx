@@ -74,10 +74,16 @@ const EnrolledCourses = () => {
             return (
               <div key={courseId || enrollment.id} className="enrolled-course-card card">
                 <div className="course-image-wrapper">
-                  <img 
-                    src={course.thumbnailUrl || course.thumbnail || 'https://via.placeholder.com/400x225?text=Course'} 
-                    alt={course.title} 
-                  />
+                  {course.thumbnailUrl || course.thumbnail ? (
+                    <img
+                      src={course.thumbnailUrl || course.thumbnail}
+                      alt={course.title}
+                      onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }}
+                    />
+                  ) : null}
+                  <div className="course-thumb-placeholder" style={{ display: course.thumbnailUrl || course.thumbnail ? 'none' : 'flex' }}>
+                    <span>{course.title?.charAt(0) || 'C'}</span>
+                  </div>
                   <div className="progress-overlay">
                     <div className="circular-progress">
                       <span>{progress}%</span>
@@ -89,9 +95,10 @@ const EnrolledCourses = () => {
                   <h3>{course.title}</h3>
                   {teacher.name && (
                     <div className="teacher-mini">
-                      <img 
-                        src={teacher.profileImage || teacher.avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(teacher.name)} 
-                        alt={teacher.name} 
+                      <img
+                        src={teacher.profileImage || teacher.avatar || '/default-avatar.png'}
+                        alt={teacher.name}
+                        onError={(e) => { e.target.src = '/default-avatar.png'; }}
                       />
                       <span>{teacher.name}</span>
                     </div>

@@ -1,0 +1,443 @@
+.booking-page .page-header {
+    margin-bottom: 1.5em;
+}
+
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    background: transparent;
+    color: var(--text-medium);
+    border: none;
+    padding: 0.5em 0;
+    box-shadow: none;
+    margin-bottom: 1.5em;
+    font-size: 0.95em;
+}
+
+.back-btn:hover {
+    color: var(--primary-color);
+    transform: none;
+    box-shadow: none;
+}
+
+.success-banner {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+    padding: 1em 1.5em;
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+    margin-bottom: 1.5em;
+}
+
+.success-banner h4 {
+    margin: 0;
+    color: var(--success-color);
+}
+
+.success-banner p {
+    margin: 0.25em 0 0;
+    font-size: 0.9em;
+    color: var(--text-medium);
+}
+
+.success-banner svg {
+    color: var(--success-color);
+    flex-shrink: 0;
+}
+
+.search-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+    padding: 0.75em 1em;
+    margin-bottom: 2em;
+}
+
+.search-bar input {
+    flex: 1;
+    border: none;
+    padding: 0.25em 0;
+    font-size: 0.95em;
+}
+
+.search-bar input:focus {
+    outline: none;
+    border: none;
+    box-shadow: none;
+}
+
+.search-bar button {
+    padding: 0.5em 1.25em;
+    font-size: 0.85em;
+}
+
+/* Teachers Grid */
+.teachers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5em;
+}
+
+.teacher-card {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 1em;
+    padding: 1.25em;
+    transition: all 0.2s ease;
+}
+
+.teacher-card:hover {
+    transform: translateY(-3px);
+}
+
+.teacher-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.teacher-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.teacher-card-info h3 {
+    margin: 0 0 0.3em;
+    font-size: 1em;
+}
+
+.teacher-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+    font-size: 0.85em;
+    color: var(--text-light);
+    margin-bottom: 0.5em;
+}
+
+.rating {
+    display: flex;
+    align-items: center;
+    gap: 0.25em;
+}
+
+.teacher-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4em;
+}
+
+.tag-badge {
+    font-size: 0.75em;
+    padding: 0.2em 0.6em;
+    border-radius: var(--radius-full);
+    background: var(--background-dark);
+    color: var(--text-medium);
+}
+
+/* Teacher Profile Header */
+.teacher-profile-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5em;
+    margin-bottom: 2em;
+    padding: 1.5em;
+}
+
+.teacher-profile-header img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.teacher-profile-info h2 {
+    margin: 0 0 0.3em;
+}
+
+.teacher-profile-info > p {
+    margin: 0 0 0.75em;
+    font-size: 0.9em;
+    color: var(--text-medium);
+}
+
+.teacher-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+    flex-wrap: wrap;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+    font-weight: 600;
+    font-size: 0.9em;
+}
+
+.section-title {
+    margin: 0 0 1em;
+}
+
+/* Accordion Day Cards */
+.dates-accordion {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75em;
+    margin-bottom: 2em;
+}
+
+.accordion-item {
+    padding: 0;
+    overflow: hidden;
+    transition: box-shadow 0.2s ease;
+}
+
+.accordion-item.open {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.accordion-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 1em 1.25em;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    box-shadow: none;
+    transition: background 0.15s ease;
+}
+
+.accordion-header:hover {
+    background: var(--background-light);
+    transform: none;
+    box-shadow: none;
+}
+
+.accordion-day-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+    text-align: left;
+}
+
+.accordion-day-name {
+    font-weight: 700;
+    font-size: 1em;
+    color: var(--text-dark);
+}
+
+.accordion-date {
+    font-size: 0.85em;
+    color: var(--text-light);
+}
+
+.accordion-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+}
+
+.accordion-slot-count {
+    font-size: 0.8em;
+    font-weight: 600;
+    padding: 0.2em 0.65em;
+    border-radius: var(--radius-full);
+    background: rgba(42, 143, 155, 0.1);
+    color: var(--primary-color);
+}
+
+.accordion-chevron {
+    color: var(--text-light);
+    transition: transform 0.25s ease;
+}
+
+.accordion-chevron.rotated {
+    transform: rotate(180deg);
+}
+
+.accordion-body {
+    padding: 0 1.25em 1.25em;
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+}
+
+.time-range-section {
+    background: var(--background-light);
+    border-radius: var(--radius-md);
+    padding: 1em;
+}
+
+.range-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75em;
+}
+
+.range-label {
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--text-medium);
+}
+
+.range-meta {
+    display: flex;
+    gap: 1em;
+    font-size: 0.8em;
+    color: var(--text-light);
+}
+
+.range-meta span {
+    display: flex;
+    align-items: center;
+    gap: 0.25em;
+}
+
+.slots-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 0.5em;
+}
+
+.slot-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3em;
+    padding: 0.6em 0.5em;
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: white;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: none;
+}
+
+.slot-btn:hover {
+    border-color: var(--primary-color);
+    background: rgba(42, 143, 155, 0.06);
+    transform: none;
+    box-shadow: none;
+}
+
+.slot-btn.selected {
+    border-color: var(--primary-color);
+    background: rgba(42, 143, 155, 0.12);
+    box-shadow: 0 0 0 2px rgba(42, 143, 155, 0.2);
+}
+
+.slot-time {
+    font-weight: 600;
+    font-size: 0.85em;
+    color: var(--text-dark);
+}
+
+.slot-ampm {
+    font-size: 0.7em;
+    color: var(--text-light);
+    font-weight: 500;
+}
+
+/* Booking Confirm */
+.booking-confirm {
+    margin-top: 2em;
+    padding: 1.5em;
+}
+
+.booking-confirm h3 {
+    margin: 0 0 1em;
+}
+
+.booking-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5em;
+    margin-bottom: 1.25em;
+    padding: 1em;
+    background: var(--background-light);
+    border-radius: var(--radius-md);
+}
+
+.booking-summary p {
+    margin: 0;
+    font-size: 0.9em;
+}
+
+.form-group {
+    margin-bottom: 1em;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--text-medium);
+    margin-bottom: 0.4em;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1em;
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--text-medium);
+    border: 1px solid var(--border-color);
+    box-shadow: none;
+}
+
+.btn-secondary:hover {
+    background: var(--background-light);
+    box-shadow: none;
+    transform: none;
+}
+
+.error-text {
+    color: var(--error-color);
+    font-size: 0.85em;
+    margin: 0.5em 0;
+}
+
+@media (max-width: 768px) {
+    .teacher-profile-header {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .teacher-meta {
+        justify-content: center;
+    }
+
+    .booking-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .slots-grid {
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    }
+
+    .accordion-day-info {
+        flex-direction: column;
+        gap: 0.15em;
+        align-items: flex-start;
+    }
+
+    .range-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.4em;
+    }
+}

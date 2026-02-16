@@ -1,0 +1,204 @@
+.appointments-page .page-header {
+    margin-bottom: 1.5em;
+}
+
+.tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 2em;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.tab {
+    padding: 0.75em 1.5em;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    color: var(--text-light);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: none;
+    border-radius: 0;
+}
+
+.tab:hover {
+    color: var(--text-dark);
+    transform: none;
+    box-shadow: none;
+}
+
+.tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    font-weight: 600;
+}
+
+.appointments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+}
+
+.appointment-card {
+    display: flex;
+    align-items: center;
+    gap: 1.5em;
+    padding: 1.25em 1.5em;
+    transition: all 0.2s ease;
+}
+
+.appointment-card.joinable {
+    border-left: 3px solid var(--success-color);
+}
+
+.appointment-card-left {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+    flex: 1;
+    min-width: 0;
+}
+
+.appointment-card-left img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.appointment-info {
+    min-width: 0;
+}
+
+.appointment-info h4 {
+    margin: 0 0 0.25em;
+    font-size: 0.95em;
+}
+
+.role-badge {
+    font-size: 0.75em;
+    padding: 0.15em 0.5em;
+    border-radius: var(--radius-full);
+    background: var(--background-dark);
+    color: var(--text-medium);
+    text-transform: capitalize;
+}
+
+.appointment-desc {
+    margin: 0.4em 0 0;
+    font-size: 0.82em;
+    color: var(--text-light);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.appointment-card-center {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5em;
+    flex-shrink: 0;
+}
+
+.date-time {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3em;
+}
+
+.appt-date, .appt-time {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    font-size: 0.85em;
+    color: var(--text-medium);
+}
+
+.status-badge {
+    font-size: 0.75em;
+    padding: 0.2em 0.6em;
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.status-badge.completed {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-badge.canceled {
+    background: #fef2f2;
+    color: #991b1b;
+}
+
+.appointment-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+    flex-shrink: 0;
+}
+
+.join-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0.5em 1em;
+    font-size: 0.85em;
+    border-radius: var(--radius-md);
+}
+
+.join-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: var(--border-color);
+}
+
+.join-btn.disabled:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.cancel-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+    padding: 0.5em 0.75em;
+    font-size: 0.8em;
+    background: transparent;
+    color: var(--error-color);
+    border: 1px solid var(--error-color);
+    box-shadow: none;
+}
+
+.cancel-btn:hover {
+    background: var(--error-color);
+    color: white;
+    transform: none;
+    box-shadow: none;
+}
+
+@media (max-width: 768px) {
+    .appointment-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .appointment-card-center {
+        width: 100%;
+    }
+
+    .appointment-card-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .date-time {
+        flex-direction: row;
+        gap: 1em;
+    }
+}

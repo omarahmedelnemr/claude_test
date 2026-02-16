@@ -14,7 +14,8 @@ import {
   Home,
   Calendar,
   BarChart3,
-  Mail
+  Mail,
+  Clock
 } from 'lucide-react';
 import './Navbar.css';
 
@@ -73,9 +74,13 @@ const Navbar = () => {
               <BookMarked size={20} />
               <span>My Courses</span>
             </Link>
-            <Link to="/schedule" className="nav-link">
+            <Link to="/appointments" className="nav-link">
               <Calendar size={20} />
-              <span>Schedule</span>
+              <span>Appointments</span>
+            </Link>
+            <Link to="/appointments/availability" className="nav-link">
+              <Clock size={20} />
+              <span>Availability</span>
             </Link>
             <Link to="/analytics" className="nav-link">
               <BarChart3 size={20} />
@@ -94,6 +99,14 @@ const Navbar = () => {
               <BookMarked size={20} />
               <span>My Learning</span>
             </Link>
+            <Link to="/appointments/book" className="nav-link">
+              <Calendar size={20} />
+              <span>Book Appointment</span>
+            </Link>
+            <Link to="/appointments" className="nav-link">
+              <Calendar size={20} />
+              <span>Appointments</span>
+            </Link>
             <Link to="/messages" className="nav-link">
               <Mail size={20} />
               <span>Messages</span>
@@ -102,10 +115,16 @@ const Navbar = () => {
         )}
 
         {currentUser?.role === 'parent' && (
-          <Link to="/messages" className="nav-link">
-            <Mail size={20} />
-            <span>Messages</span>
-          </Link>
+          <>
+            <Link to="/appointments" className="nav-link">
+              <Calendar size={20} />
+              <span>Appointments</span>
+            </Link>
+            <Link to="/messages" className="nav-link">
+              <Mail size={20} />
+              <span>Messages</span>
+            </Link>
+          </>
         )}
 
         {currentUser?.role === 'admin' && (

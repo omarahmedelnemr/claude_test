@@ -1,0 +1,175 @@
+.ppi-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3em;
+  text-align: center;
+  gap: 0.5em;
+}
+
+.ppi-empty-state h3 {
+  margin: 0.5em 0 0;
+  color: var(--text-dark);
+}
+
+.ppi-empty-state p {
+  color: var(--text-light);
+  margin: 0;
+}
+
+/* Alerts */
+.ppi-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75em 1em;
+  border-radius: 8px;
+  margin-bottom: 1em;
+  font-size: 0.95em;
+}
+
+.ppi-alert-error {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.ppi-alert-success {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.ppi-alert-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  padding: 0.25em;
+  display: flex;
+  align-items: center;
+}
+
+/* Invitations List */
+.ppi-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.ppi-invitation-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25em;
+  gap: 1.5em;
+}
+
+.ppi-student-info {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  flex: 1;
+}
+
+.ppi-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.ppi-details h3 {
+  margin: 0 0 0.35em;
+  font-size: 1.1em;
+  color: var(--text-dark);
+}
+
+.ppi-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1em;
+  font-size: 0.85em;
+  color: var(--text-light);
+}
+
+.ppi-meta span {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+}
+
+.ppi-expires {
+  color: #d97706;
+}
+
+/* Action Buttons */
+.ppi-actions {
+  display: flex;
+  gap: 0.5em;
+  flex-shrink: 0;
+}
+
+.ppi-accept-btn,
+.ppi-reject-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.6em 1.25em;
+  border-radius: 8px;
+  font-size: 0.95em;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.ppi-accept-btn {
+  background: #059669;
+  color: white;
+}
+
+.ppi-accept-btn:hover:not(:disabled) {
+  background: #047857;
+}
+
+.ppi-reject-btn {
+  background: none;
+  border: 1px solid #e2e8f0;
+  color: var(--text-light);
+}
+
+.ppi-reject-btn:hover:not(:disabled) {
+  border-color: #dc2626;
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+.ppi-accept-btn:disabled,
+.ppi-reject-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .ppi-invitation-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ppi-actions {
+    width: 100%;
+  }
+
+  .ppi-accept-btn,
+  .ppi-reject-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .ppi-meta {
+    flex-direction: column;
+    gap: 0.25em;
+  }
+}

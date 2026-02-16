@@ -10,6 +10,7 @@ const StudentDashboard = () => {
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [failedImages, setFailedImages] = useState(new Set());
 
   useEffect(() => {
     if (currentUser?.id) {
@@ -124,13 +125,37 @@ const StudentDashboard = () => {
               const course = enrollment.course || enrollment;
               const progress = enrollment.progress || 0;
               const courseId = course.id || course.courseID || enrollment.courseID;
+              const hasThumbnail = course.thumbnailUrl || course.thumbnail;
+              const imageFailed = failedImages.has(courseId);
+              const showPlaceholder = !hasThumbnail || imageFailed;
               
               return (
                 <div key={courseId || enrollment.id} className="course-card">
-                  <img 
-                    src={course.thumbnailUrl || course.thumbnail || 'https://via.placeholder.com/400x225?text=Course'} 
-                    alt={course.title} 
-                  />
+                  {hasThumbnail && !imageFailed ? (
+                    <img 
+                      src={course.thumbnailUrl || course.thumbnail}
+                      alt={course.title}
+                      onError={(e) => {
+                        setFailedImages(prev => new Set(prev).add(courseId));
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  ) : null}
+                  {showPlaceholder && (
+                    <div className="course-thumb-placeholder" style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      backgroundColor: '#e0e0e0',
+                      color: '#666',
+                      fontSize: '2rem',
+                      fontWeight: 'bold',
+                      minHeight: '200px',
+                      width: '100%'
+                    }}>
+                      <span>{course.title?.charAt(0)?.toUpperCase() || 'C'}</span>
+                    </div>
+                  )}
                   <div className="course-content">
                     <h3>{course.title}</h3>
                     <p className="course-description">

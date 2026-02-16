@@ -1,0 +1,428 @@
+.tp-page .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    background: transparent;
+    color: var(--text-medium);
+    border: none;
+    padding: 0.5em 0;
+    box-shadow: none;
+    margin-bottom: 1.5em;
+    font-size: 0.95em;
+}
+
+.tp-page .back-btn:hover {
+    color: var(--primary-color);
+    transform: none;
+    box-shadow: none;
+}
+
+.tp-loading {
+    text-align: center;
+    padding: 4em 1em;
+    color: var(--text-light);
+}
+
+/* Hero */
+.tp-hero {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5em;
+    padding: 1.5em;
+    margin-bottom: 0;
+}
+
+.tp-hero-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.tp-hero-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.tp-hero-info h1 {
+    margin: 0 0 0.15em;
+    font-size: 1.4em;
+}
+
+.tp-hero-title {
+    margin: 0 0 0.5em;
+    font-size: 0.9em;
+    color: var(--text-light);
+}
+
+.tp-hero-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.15em;
+    margin-bottom: 0.6em;
+}
+
+.tp-rating-num {
+    margin-left: 0.35em;
+    font-weight: 700;
+    font-size: 0.9em;
+    color: var(--text-dark);
+}
+
+.tp-rating-count {
+    font-size: 0.82em;
+    color: var(--text-light);
+    margin-left: 0.25em;
+}
+
+.tp-hero-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35em;
+    margin-bottom: 0.75em;
+}
+
+.tp-tag {
+    font-size: 0.75em;
+    padding: 0.2em 0.6em;
+    border-radius: var(--radius-full);
+    background: var(--background-dark);
+    color: var(--text-medium);
+}
+
+.tp-hero-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+    flex-wrap: wrap;
+}
+
+.tp-stat-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+    font-size: 0.82em;
+    color: var(--text-medium);
+    padding: 0.25em 0.65em;
+    background: var(--background-light);
+    border-radius: var(--radius-full);
+}
+
+.tp-stat-pill svg {
+    color: var(--primary-color);
+}
+
+.tp-online-badge {
+    font-size: 0.72em;
+    font-weight: 600;
+    padding: 0.2em 0.6em;
+    border-radius: var(--radius-full);
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.tp-hero-actions {
+    flex-shrink: 0;
+    align-self: center;
+}
+
+.tp-book-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.7em 1.5em;
+    font-size: 0.9em;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Tabs */
+.tp-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--border-color);
+    margin: 1.5em 0 0;
+}
+
+.tp-tab {
+    padding: 0.75em 1.5em;
+    font-size: 0.9em;
+    font-weight: 600;
+    color: var(--text-light);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: none;
+}
+
+.tp-tab:hover {
+    color: var(--text-dark);
+    transform: none;
+    box-shadow: none;
+}
+
+.tp-tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+/* Tab Content */
+.tp-tab-content {
+    margin-top: 1.5em;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25em;
+}
+
+.tp-section {
+    padding: 1.25em;
+}
+
+.tp-section h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    margin: 0 0 1em;
+    font-size: 1.05em;
+}
+
+.tp-section h3 svg {
+    color: var(--primary-color);
+}
+
+.tp-description {
+    margin: 0;
+    line-height: 1.65;
+    color: var(--text-medium);
+    font-size: 0.92em;
+}
+
+.tp-empty {
+    text-align: center;
+    color: var(--text-light);
+    padding: 2em;
+}
+
+/* Info list (Experience / Education / Certificates) */
+.tp-info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6em;
+}
+
+.tp-info-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65em;
+    padding: 0.7em 0.85em;
+    background: var(--background-light);
+    border-radius: var(--radius-md);
+    font-size: 0.9em;
+    color: var(--text-medium);
+}
+
+.tp-info-item svg {
+    color: var(--primary-color);
+    flex-shrink: 0;
+}
+
+/* Courses Grid */
+.tp-courses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25em;
+}
+
+.tp-course-card {
+    cursor: pointer;
+    padding: 0;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.tp-course-card:hover {
+    transform: translateY(-3px);
+}
+
+.tp-course-thumb {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+}
+
+.tp-course-body {
+    padding: 1em;
+}
+
+.tp-course-body h4 {
+    margin: 0 0 0.3em;
+    font-size: 0.95em;
+}
+
+.tp-course-subject {
+    font-size: 0.75em;
+    padding: 0.15em 0.5em;
+    border-radius: var(--radius-full);
+    background: rgba(42, 143, 155, 0.1);
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.tp-course-desc {
+    margin: 0.5em 0 0.75em;
+    font-size: 0.82em;
+    color: var(--text-medium);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.tp-course-footer {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+    font-size: 0.8em;
+    color: var(--text-light);
+}
+
+.tp-course-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.2em;
+    font-weight: 600;
+    color: var(--text-medium);
+}
+
+.tp-course-price {
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+/* Reviews */
+.tp-reviews-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+}
+
+.tp-review-card {
+    padding: 1em;
+}
+
+.tp-review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.6em;
+}
+
+.tp-review-author {
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+}
+
+.tp-review-author img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.tp-review-author strong {
+    font-size: 0.9em;
+    display: block;
+}
+
+.tp-review-date {
+    font-size: 0.78em;
+    color: var(--text-light);
+    display: block;
+}
+
+.tp-review-stars {
+    display: flex;
+    gap: 0.1em;
+}
+
+.tp-review-text {
+    margin: 0;
+    font-size: 0.88em;
+    color: var(--text-medium);
+    line-height: 1.55;
+}
+
+.tp-show-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4em;
+    width: 100%;
+    padding: 0.75em;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-medium);
+    font-size: 0.85em;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: none;
+    transition: all 0.15s ease;
+}
+
+.tp-show-more:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    transform: none;
+    box-shadow: none;
+}
+
+.tp-show-more .rotated {
+    transform: rotate(180deg);
+}
+
+@media (max-width: 768px) {
+    .tp-hero {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .tp-hero-tags,
+    .tp-hero-stats {
+        justify-content: center;
+    }
+
+    .tp-hero-rating {
+        justify-content: center;
+    }
+
+    .tp-hero-actions {
+        width: 100%;
+    }
+
+    .tp-book-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .tp-tabs {
+        overflow-x: auto;
+    }
+
+    .tp-tab {
+        padding: 0.75em 1em;
+        font-size: 0.85em;
+        white-space: nowrap;
+    }
+
+    .tp-courses-grid {
+        grid-template-columns: 1fr;
+    }
+}

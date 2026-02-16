@@ -1,101 +1,197 @@
-import { users, courses } from '../../data/mockData';
-import { BookOpen, Star } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Star, ChevronLeft, ChevronRight, ArrowUpDown, Calendar, User } from 'lucide-react';
+import appointmentService from '../../services/appointmentService';
 import './TeacherList.css';
 
 const TeacherList = () => {
-  const teachers = users.filter(u => u.role === 'teacher');
+    const navigate = useNavigate();
+    const [teachers, setTeachers] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [sortBy, setSortBy] = useState('completedCourses');
+    const [sortOrder, setSortOrder] = useState('DESC');
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState({ total: 0, totalPages: 1, hasNextPage: false, hasPreviousPage: false });
+    const LIMIT = 12;
 
-  const getTeacherStats = (teacherId) => {
-    const teacherCourses = courses.filter(c => c.teacherId === teacherId);
-    const totalStudents = teacherCourses.reduce((sum, c) => sum + c.studentsEnrolled, 0);
-    const avgRating = teacherCourses.length > 0
-      ? (teacherCourses.reduce((sum, c) => sum + c.rating, 0) / teacherCourses.length).toFixed(1)
-      : 0;
+    useEffect(() => {
+        loadTeachers();
+    }, [page, sortBy, sortOrder]);
 
-    return {
-      coursesCount: teacherCourses.length,
-      totalStudents,
-      avgRating,
-      courses: teacherCourses
+    const loadTeachers = async (search = searchQuery) => {
+        setLoading(true);
+        try {
+            const result = await appointmentService.getTeachersList({
+                searchQuery: search,
+                sortBy,
+                sortOrder,
+                limit: LIMIT,
+                loadBlock: page,
+            });
+            // Backend may return { data: [...], total, ... } or just an array
+            if (result && result.data) {
+                setTeachers(Array.isArray(result.data) ? result.data : []);
+                setPagination({
+                    total: result.total || 0,
+                    totalPages: result.totalPages || 1,
+                    hasNextPage: result.hasNextPage || false,
+                    hasPreviousPage: result.hasPreviousPage || false,
+                });
+            } else {
+                setTeachers(Array.isArray(result) ? result : []);
+                setPagination({ total: 0, totalPages: 1, hasNextPage: false, hasPreviousPage: false });
+            }
+        } catch (err) {
+            console.error("Failed to load teachers:", err);
+        } finally {
+            setLoading(false);
+        }
     };
-  };
 
-  return (
-    <div className="container">
-      <div className="page-header">
-        <h1>Our Expert Instructors</h1>
-        <p>Learn from experienced professionals who are passionate about teaching</p>
-      </div>
+    const handleSearch = (e) => {
+        e.preventDefault();
+        setPage(1);
+        loadTeachers(searchQuery);
+    };
 
-      <div className="teachers-grid">
-        {teachers.map(teacher => {
-          const stats = getTeacherStats(teacher.id);
-          return (
-            <div key={teacher.id} className="teacher-card">
-              <div className="teacher-header">
-                <img src={teacher.avatar} alt={teacher.name} />
-                <div className="teacher-info">
-                  <h2>{teacher.name}</h2>
-                  <p className="teacher-bio">{teacher.bio}</p>
-                  {teacher.expertise && (
-                    <div className="teacher-expertise">
-                      {teacher.expertise.map((skill, idx) => (
-                        <span key={idx} className="skill-tag">{skill}</span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
+    const handleSortToggle = () => {
+        if (sortBy === 'starRate') {
+            setSortBy('completedCourses');
+        } else {
+            setSortBy('starRate');
+        }
+        setPage(1);
+    };
 
-              <div className="teacher-stats">
-                <div className="stat">
-                  <BookOpen size={20} color="var(--primary-color)" />
-                  <div>
-                    <strong>{stats.coursesCount}</strong>
-                    <span>Courses</span>
-                  </div>
-                </div>
-                <div className="stat">
-                  <Star size={20} color="#ff9800" />
-                  <div>
-                    <strong>{stats.avgRating}</strong>
-                    <span>Rating</span>
-                  </div>
-                </div>
-                <div className="stat">
-                  <div style={{ fontSize: '1.5em' }}>👥</div>
-                  <div>
-                    <strong>{stats.totalStudents.toLocaleString()}</strong>
-                    <span>Students</span>
-                  </div>
-                </div>
-              </div>
+    const handleBookTeacher = (teacherId) => {
+        navigate(`/appointments/book?teacherID=${teacherId}`);
+    };
 
-              {stats.courses.length > 0 && (
-                <div className="teacher-courses">
-                  <h4>Courses by {teacher.name.split(' ')[0]}</h4>
-                  <div className="courses-list">
-                    {stats.courses.map(course => (
-                      <div key={course.id} className="mini-course-card">
-                        <img src={course.thumbnail} alt={course.title} />
-                        <div>
-                          <h5>{course.title}</h5>
-                          <div className="mini-course-meta">
-                            <span>⭐ {course.rating}</span>
-                            <span>${course.price}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+    const renderStars = (rating) => {
+        const stars = [];
+        const full = Math.floor(rating);
+        for (let i = 0; i < 5; i++) {
+            stars.push(
+                <Star
+                    key={i}
+                    size={14}
+                    color="#ff9800"
+                    fill={i < full ? "#ff9800" : "none"}
+                />
+            );
+        }
+        return stars;
+    };
+
+    return (
+        <div className="container teacher-list-page">
+            <div className="page-header">
+                <div>
+                    <h1>Our Expert Instructors</h1>
+                    <p>Find a teacher and book a session</p>
                 </div>
-              )}
             </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+
+            <div className="tl-controls">
+                <form className="tl-search card" onSubmit={handleSearch}>
+                    <Search size={18} />
+                    <input
+                        type="text"
+                        placeholder="Search teachers by name..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <button type="submit">Search</button>
+                </form>
+                <button className="tl-sort-btn" onClick={handleSortToggle} title="Toggle sort">
+                    <ArrowUpDown size={16} />
+                    {sortBy === 'starRate' ? 'Rating' : 'Experience'}
+                </button>
+            </div>
+
+            {loading ? (
+                <div className="tl-loading">
+                    <p>Loading teachers...</p>
+                </div>
+            ) : teachers.length === 0 ? (
+                <div className="tl-empty">
+                    <p>No teachers found</p>
+                </div>
+            ) : (
+                <>
+                    <div className="tl-grid">
+                        {teachers.map(teacher => (
+                            <div key={teacher.id} className="card tl-card">
+                                <div className="tl-card-top">
+                                    <img
+                                        src={teacher.profileImage || '/default-avatar.png'}
+                                        alt={teacher.name}
+                                        className="tl-avatar"
+                                        onError={(e) => { e.target.src = '/default-avatar.png'; }}
+                                    />
+                                    <div className="tl-card-info">
+                                        <h3>{teacher.name}</h3>
+                                        {teacher.title && <p className="tl-title">{teacher.title}</p>}
+                                        <div className="tl-rating">
+                                            {renderStars(teacher.starRate || 0)}
+                                            <span className="tl-rating-num">{(teacher.starRate || 0).toFixed(1)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {teacher.description && (
+                                    <p className="tl-desc">{teacher.description}</p>
+                                )}
+
+                                {teacher.tags?.length > 0 && (
+                                    <div className="tl-tags">
+                                        {teacher.tags.slice(0, 4).map((t, i) => (
+                                            <span key={i} className="tl-tag">{t.tag || t}</span>
+                                        ))}
+                                        {teacher.tags.length > 4 && (
+                                            <span className="tl-tag tl-tag-more">+{teacher.tags.length - 4}</span>
+                                        )}
+                                    </div>
+                                )}
+
+                                <div className="tl-card-actions">
+                                    <button className="tl-profile-btn" onClick={() => navigate(`/teachers/${teacher.id}`)}>
+                                        <User size={15} />
+                                        View Profile
+                                    </button>
+                                    <button className="tl-book-btn" onClick={() => handleBookTeacher(teacher.id)}>
+                                        <Calendar size={15} />
+                                        Book
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {pagination.totalPages > 1 && (
+                        <div className="tl-pagination">
+                            <button
+                                disabled={!pagination.hasPreviousPage}
+                                onClick={() => setPage(p => p - 1)}
+                            >
+                                <ChevronLeft size={16} /> Prev
+                            </button>
+                            <span className="tl-page-info">
+                                Page {page} of {pagination.totalPages}
+                            </span>
+                            <button
+                                disabled={!pagination.hasNextPage}
+                                onClick={() => setPage(p => p + 1)}
+                            >
+                                Next <ChevronRight size={16} />
+                            </button>
+                        </div>
+                    )}
+                </>
+            )}
+        </div>
+    );
 };
 
 export default TeacherList;

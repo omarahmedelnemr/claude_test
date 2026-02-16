@@ -13,6 +13,7 @@ const CourseList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [subjects, setSubjects] = useState(['all']);
+  const [failedImages, setFailedImages] = useState(new Set());
 
   // Fetch courses on mount
   useEffect(() => {
@@ -127,14 +128,31 @@ const CourseList = () => {
         </div>
       ) : (
         <div className="course-grid">
-          {filteredCourses.map(course => (
-            <div key={course.id || course.courseID} className="course-card">
-              <Link to={`/courses/${course.id || course.courseID}`}>
-                <img 
-                  src={course.thumbnailUrl || course.thumbnail || 'https://via.placeholder.com/400x225?text=Course'} 
-                  alt={course.title} 
-                />
-              </Link>
+          {filteredCourses.map(course => {
+            const courseId = course.id || course.courseID;
+            const hasThumbnail = course.thumbnailUrl || course.thumbnail;
+            const imageFailed = failedImages.has(courseId);
+            const showPlaceholder = !hasThumbnail || imageFailed;
+
+            return (
+              <div key={courseId} className="course-card">
+                <Link to={`/courses/${courseId}`}>
+                  {hasThumbnail && !imageFailed ? (
+                    <img
+                      src={course.thumbnailUrl || course.thumbnail}
+                      alt={course.title}
+                      onError={(e) => {
+                        setFailedImages(prev => new Set(prev).add(courseId));
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  ) : null}
+                  {showPlaceholder && (
+                    <div className="course-thumb-placeholder" style={{ display: 'flex' }}>
+                      <span>{course.title?.charAt(0)?.toUpperCase() || 'C'}</span>
+                    </div>
+                  )}
+                </Link>
               <div className="course-content">
                 <div className="course-meta">
                   {course.subject && (
@@ -152,18 +170,16 @@ const CourseList = () => {
                 </p>
                 {course.teacher && (
                   <div className="teacher-info">
-                    <img 
-                      src={course.teacher.profileImage || course.teacher.avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(course.teacher.name || 'Teacher')} 
-                      alt={course.teacher.name} 
+                    <img
+                      src={course.teacher.profileImage || course.teacher.avatar || '/default-avatar.png'}
+                      alt={course.teacher.name}
+                      onError={(e) => { e.target.src = '/default-avatar.png'; }}
                     />
                     <span>{course.teacher.name}</span>
                   </div>
                 )}
                 <div className="course-stats">
                   <div>
-                    {course.rating && (
-                      <span className="rating">⭐ {course.rating.toFixed(1)}</span>
-                    )}
                     {course.enrolledCount !== undefined && (
                       <span className="students">
                         {course.enrolledCount.toLocaleString()} students
@@ -188,14 +204,15 @@ const CourseList = () => {
                   </div>
                 )}
                 <Link 
-                  to={`/courses/${course.id || course.courseID}`} 
+                  to={`/courses/${courseId}`} 
                   className="enroll-btn"
                 >
                   {course.isEnrolled ? 'View Course' : 'View Details'}
                 </Link>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

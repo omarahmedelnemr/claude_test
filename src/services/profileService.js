@@ -88,6 +88,16 @@ export const profileService = {
     return response.data;
   },
 
+  /**
+   * Update my bio
+   * @param {string} newBio - New bio text (max 500 characters)
+   * @returns {Promise} API response
+   */
+  updateBio: async (newBio) => {
+    const response = await api.post('/profile/bio', { newBio });
+    return response.data;
+  },
+
   // ==================== Teacher Profile ====================
 
   /**
@@ -129,6 +139,54 @@ export const profileService = {
     return response.data;
   },
 
+  // Teacher Education Records
+  getTeacherEducation: async (teacherID) => {
+    const response = await api.get('/profile/teacher-education-record', { params: { teacherID } });
+    return response.data;
+  },
+
+  addTeacherEducation: async (teacherID, title) => {
+    const response = await api.post('/profile/teacher-education-record', { teacherID, title });
+    return response.data;
+  },
+
+  deleteTeacherEducation: async (teacherID, recordID) => {
+    const response = await api.delete('/profile/teacher-education-record', { data: { teacherID, recordID } });
+    return response.data;
+  },
+
+  // Teacher Experience Records
+  getTeacherExperience: async (teacherID) => {
+    const response = await api.get('/profile/teacher-experience-record', { params: { teacherID } });
+    return response.data;
+  },
+
+  addTeacherExperience: async (teacherID, title) => {
+    const response = await api.post('/profile/teacher-experience-record', { teacherID, title });
+    return response.data;
+  },
+
+  deleteTeacherExperience: async (teacherID, recordID) => {
+    const response = await api.delete('/profile/teacher-experience-record', { data: { teacherID, recordID } });
+    return response.data;
+  },
+
+  // Teacher Certificate Records
+  getTeacherCertificates: async (teacherID) => {
+    const response = await api.get('/profile/teacher-certificate-record', { params: { teacherID } });
+    return response.data;
+  },
+
+  addTeacherCertificate: async (teacherID, title) => {
+    const response = await api.post('/profile/teacher-certificate-record', { teacherID, title });
+    return response.data;
+  },
+
+  deleteTeacherCertificate: async (teacherID, recordID) => {
+    const response = await api.delete('/profile/teacher-certificate-record', { data: { teacherID, recordID } });
+    return response.data;
+  },
+
   // ==================== Student Profile ====================
 
   /**
@@ -147,6 +205,33 @@ export const profileService = {
    */
   updateStudentName: async (newName) => {
     const response = await api.post('/profile/student-name-edit', { newName });
+    return response.data;
+  },
+
+  // ==================== Parent Invitations (Student Side) ====================
+
+  sendParentInvitation: async (studentID, parentEmail) => {
+    const response = await api.post('/profile/send-parent-invitation', { studentID, parentEmail });
+    return response.data;
+  },
+
+  getSentInvitations: async (studentID) => {
+    const response = await api.get('/profile/sent-parent-invitations', { params: { studentID } });
+    return response.data;
+  },
+
+  cancelInvitation: async (studentID, invitationID) => {
+    const response = await api.delete('/profile/cancel-parent-invitation', { data: { studentID, invitationID } });
+    return response.data;
+  },
+
+  getParentsList: async (studentID) => {
+    const response = await api.get('/profile/parents-list', { params: { studentID } });
+    return response.data;
+  },
+
+  removeParent: async (studentID, parentID) => {
+    const response = await api.delete('/profile/remove-parent', { data: { studentID, parentID } });
     return response.data;
   },
 };

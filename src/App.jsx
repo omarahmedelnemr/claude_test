@@ -9,6 +9,7 @@ import CourseList from './pages/Common/CourseList';
 import CourseDetail from './pages/Common/CourseDetail';
 import CoursePlayer from './pages/Student/CoursePlayer';
 import TeacherList from './pages/Common/TeacherList';
+import TeacherProfile from './pages/Common/TeacherProfile';
 import Community from './pages/Common/Community';
 import SavedPosts from './pages/Common/SavedPosts';
 import BlogList from './pages/Common/BlogList';
@@ -20,9 +21,14 @@ import MyCourses from './pages/Teacher/MyCourses';
 import CourseEditor from './pages/Teacher/CourseEditor';
 import CourseContentManager from './pages/Teacher/CourseContentManager';
 import EnrolledCourses from './pages/Student/EnrolledCourses';
-import LectureSchedule from './pages/Teacher/LectureSchedule';
+
 import AdvancedAnalytics from './pages/Teacher/AdvancedAnalytics';
 import Messaging from './pages/Common/Messaging';
+import MyAppointments from './pages/Common/MyAppointments';
+import AppointmentBooking from './pages/Student/AppointmentBooking';
+import TeacherAvailability from './pages/Teacher/TeacherAvailability';
+import ParentInvitation from './pages/Student/ParentInvitation';
+import PendingInvitations from './pages/Parent/PendingInvitations';
 import { AgoraChatProvider } from './contexts/AgoraChatContext';
 import Layout from './components/Common/Layout';
 
@@ -67,6 +73,7 @@ const AppRoutes = () => {
         <Route path="courses" element={<CourseList />} />
         <Route path="courses/:id" element={<CourseDetail />} />
         <Route path="teachers" element={<TeacherList />} />
+        <Route path="teachers/:id" element={<TeacherProfile />} />
         <Route path="community" element={<Community />} />
         <Route path="saved-posts" element={<ProtectedRoute><SavedPosts /></ProtectedRoute>} />
         <Route path="blog" element={<BlogList />} />
@@ -126,14 +133,6 @@ const AppRoutes = () => {
           }
         />
 
-        <Route
-          path="schedule"
-          element={
-            <ProtectedRoute allowedRoles={['teacher']}>
-              <LectureSchedule />
-            </ProtectedRoute>
-          }
-        />
 
         <Route
           path="analytics"
@@ -154,10 +153,55 @@ const AppRoutes = () => {
         />
 
         <Route
+          path="appointments"
+          element={
+            <ProtectedRoute allowedRoles={['teacher', 'student', 'parent']}>
+              <MyAppointments />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="appointments/book"
+          element={
+            <ProtectedRoute allowedRoles={['student']}>
+              <AppointmentBooking />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="appointments/availability"
+          element={
+            <ProtectedRoute allowedRoles={['teacher']}>
+              <TeacherAvailability />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="enrolled-courses"
           element={
             <ProtectedRoute allowedRoles={['student']}>
               <EnrolledCourses />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="parent-invitations"
+          element={
+            <ProtectedRoute allowedRoles={['student']}>
+              <ParentInvitation />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="pending-invitations"
+          element={
+            <ProtectedRoute allowedRoles={['parent']}>
+              <PendingInvitations />
             </ProtectedRoute>
           }
         />

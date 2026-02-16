@@ -1,162 +1,259 @@
-.teachers-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
-  gap: 2em;
+.teacher-list-page .page-header {
+    margin-bottom: 1.5em;
 }
 
-.teacher-card {
-  background: white;
-  border-radius: 12px;
-  padding: 2em;
-  box-shadow: var(--card-shadow);
-  transition: all 0.3s ease;
+/* Controls: search + sort */
+.tl-controls {
+    display: flex;
+    gap: 0.75em;
+    align-items: stretch;
+    margin-bottom: 2em;
 }
 
-.teacher-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+.tl-search {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+    padding: 0.75em 1em;
+    margin: 0;
 }
 
-.teacher-header {
-  display: flex;
-  gap: 1.5em;
-  margin-bottom: 1.5em;
-  padding-bottom: 1.5em;
-  border-bottom: 1px solid var(--border-color);
+.tl-search input {
+    flex: 1;
+    border: none;
+    padding: 0.25em 0;
+    font-size: 0.95em;
 }
 
-.teacher-header img {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  object-fit: cover;
-  flex-shrink: 0;
+.tl-search input:focus {
+    outline: none;
+    border: none;
+    box-shadow: none;
 }
 
-.teacher-info h2 {
-  margin: 0 0 0.5em 0;
-  color: var(--text-dark);
+.tl-search button {
+    padding: 0.5em 1.25em;
+    font-size: 0.85em;
 }
 
-.teacher-bio {
-  color: var(--text-light);
-  margin: 0 0 1em 0;
-  line-height: 1.6;
+.tl-sort-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0.75em 1em;
+    font-size: 0.85em;
+    font-weight: 600;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-medium);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+    box-shadow: none;
 }
 
-.teacher-expertise {
-  display: flex;
-  gap: 0.5em;
-  flex-wrap: wrap;
+.tl-sort-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    transform: none;
+    box-shadow: none;
 }
 
-.skill-tag {
-  background-color: #e5e7eb;
-  color: #6b7280;
-  padding: 0.35em 0.75em;
-  border-radius: 4px;
-  font-size: 0.85em;
-  font-weight: 500;
+/* Loading / Empty */
+.tl-loading,
+.tl-empty {
+    text-align: center;
+    padding: 3em 1em;
+    color: var(--text-light);
 }
 
-.teacher-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1em;
-  margin-bottom: 1.5em;
+/* Grid */
+.tl-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.25em;
 }
 
-.stat {
-  display: flex;
-  align-items: center;
-  gap: 0.75em;
-  padding: 1em;
-  background-color: #f9fafb;
-  border-radius: 8px;
+/* Card */
+.tl-card {
+    display: flex;
+    flex-direction: column;
+    padding: 1.25em;
+    transition: all 0.2s ease;
 }
 
-.stat div {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25em;
+.tl-card:hover {
+    transform: translateY(-3px);
 }
 
-.stat strong {
-  font-size: 1.5em;
-  color: var(--text-dark);
+.tl-card-top {
+    display: flex;
+    gap: 1em;
+    margin-bottom: 0.75em;
 }
 
-.stat span {
-  font-size: 0.85em;
-  color: var(--text-light);
+.tl-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
 }
 
-.teacher-courses h4 {
-  margin: 0 0 1em 0;
-  color: var(--text-dark);
+.tl-card-info {
+    flex: 1;
+    min-width: 0;
 }
 
-.courses-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1em;
+.tl-card-info h3 {
+    margin: 0 0 0.15em;
+    font-size: 1em;
+    color: var(--text-dark);
 }
 
-.mini-course-card {
-  display: flex;
-  gap: 1em;
-  padding: 1em;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  transition: all 0.3s ease;
+.tl-title {
+    margin: 0 0 0.35em;
+    font-size: 0.82em;
+    color: var(--text-light);
 }
 
-.mini-course-card:hover {
-  border-color: var(--primary-color);
-  box-shadow: 0 2px 8px rgba(42, 143, 155, 0.1);
+.tl-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.15em;
 }
 
-.mini-course-card img {
-  width: 80px;
-  height: 60px;
-  border-radius: 6px;
-  object-fit: cover;
-  flex-shrink: 0;
+.tl-rating-num {
+    margin-left: 0.35em;
+    font-size: 0.82em;
+    font-weight: 600;
+    color: var(--text-medium);
 }
 
-.mini-course-card h5 {
-  margin: 0 0 0.5em 0;
-  color: var(--text-dark);
-  font-size: 0.95em;
+/* Description */
+.tl-desc {
+    margin: 0 0 0.75em;
+    font-size: 0.85em;
+    color: var(--text-medium);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
-.mini-course-meta {
-  display: flex;
-  gap: 1em;
-  font-size: 0.9em;
-  color: var(--text-light);
+/* Tags */
+.tl-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35em;
+    margin-bottom: 0.75em;
+}
+
+.tl-tag {
+    font-size: 0.72em;
+    padding: 0.2em 0.6em;
+    border-radius: var(--radius-full);
+    background: var(--background-dark);
+    color: var(--text-medium);
+}
+
+.tl-tag-more {
+    background: rgba(42, 143, 155, 0.1);
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* Card action buttons */
+.tl-card-actions {
+    display: flex;
+    gap: 0.5em;
+    margin-top: auto;
+}
+
+.tl-profile-btn,
+.tl-book-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4em;
+    padding: 0.6em;
+    font-size: 0.82em;
+    font-weight: 600;
+    border-radius: var(--radius-md);
+}
+
+.tl-profile-btn {
+    flex: 1;
+    background: transparent;
+    color: var(--text-medium);
+    border: 1px solid var(--border-color);
+    box-shadow: none;
+}
+
+.tl-profile-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: transparent;
+    transform: none;
+    box-shadow: none;
+}
+
+.tl-book-btn {
+    flex: 1;
+}
+
+/* Pagination */
+.tl-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1em;
+    margin-top: 2em;
+    padding: 1em 0;
+}
+
+.tl-pagination button {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+    padding: 0.5em 1em;
+    font-size: 0.85em;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-medium);
+    cursor: pointer;
+    box-shadow: none;
+    transition: all 0.15s ease;
+}
+
+.tl-pagination button:hover:not(:disabled) {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    transform: none;
+    box-shadow: none;
+}
+
+.tl-pagination button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.tl-page-info {
+    font-size: 0.85em;
+    color: var(--text-medium);
+    font-weight: 500;
 }
 
 @media (max-width: 768px) {
-  .teachers-grid {
-    grid-template-columns: 1fr;
-  }
+    .tl-controls {
+        flex-direction: column;
+    }
 
-  .teacher-header {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .teacher-stats {
-    grid-template-columns: 1fr;
-  }
-
-  .mini-course-card {
-    flex-direction: column;
-  }
-
-  .mini-course-card img {
-    width: 100%;
-    height: 120px;
-  }
+    .tl-grid {
+        grid-template-columns: 1fr;
+    }
 }
