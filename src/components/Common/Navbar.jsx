@@ -116,12 +116,20 @@ const Navbar = () => {
 
         {currentUser?.role === 'parent' && (
           <>
+            <Link to="/connected-students" className="nav-link">
+              <Users size={20} />
+              <span>My Students</span>
+            </Link>
+            <Link to="/pending-invitations" className="nav-link">
+              <Mail size={20} />
+              <span>Invitations</span>
+            </Link>
             <Link to="/appointments" className="nav-link">
               <Calendar size={20} />
               <span>Appointments</span>
             </Link>
             <Link to="/messages" className="nav-link">
-              <Mail size={20} />
+              <MessageSquare size={20} />
               <span>Messages</span>
             </Link>
           </>

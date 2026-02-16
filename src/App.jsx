@@ -5,6 +5,7 @@ import Signup from './pages/Common/Signup';
 import AdminDashboard from './pages/Admin/AdminDashboard';
 import TeacherDashboard from './pages/Teacher/TeacherDashboard';
 import StudentDashboard from './pages/Student/StudentDashboard';
+import ParentDashboard from './pages/Parent/ParentDashboard';
 import CourseList from './pages/Common/CourseList';
 import CourseDetail from './pages/Common/CourseDetail';
 import CoursePlayer from './pages/Student/CoursePlayer';
@@ -29,6 +30,7 @@ import AppointmentBooking from './pages/Student/AppointmentBooking';
 import TeacherAvailability from './pages/Teacher/TeacherAvailability';
 import ParentInvitation from './pages/Student/ParentInvitation';
 import PendingInvitations from './pages/Parent/PendingInvitations';
+import ConnectedStudents from './pages/Parent/ConnectedStudents';
 import { AgoraChatProvider } from './contexts/AgoraChatContext';
 import Layout from './components/Common/Layout';
 
@@ -58,6 +60,8 @@ const AppRoutes = () => {
         return <TeacherDashboard />;
       case 'student':
         return <StudentDashboard />;
+      case 'parent':
+        return <ParentDashboard />;
       default:
         return <Navigate to="/login" replace />;
     }
@@ -202,6 +206,15 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={['parent']}>
               <PendingInvitations />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="connected-students"
+          element={
+            <ProtectedRoute allowedRoles={['parent']}>
+              <ConnectedStudents />
             </ProtectedRoute>
           }
         />

@@ -129,6 +129,7 @@ const CourseDetail = () => {
   }
 
   const isTeacher = currentUser?.id === (course.teacherID || course.teacher?.id);
+  const isParent = currentUser?.role === 'parent';
 
   return (
     <div className="course-detail-page">
@@ -286,6 +287,24 @@ const CourseDetail = () => {
                   >
                     <span>Edit Course Info</span>
                   </button>
+                </div>
+              ) : isParent ? (
+                <div 
+                  style={{ 
+                    padding: '1rem', 
+                    background: '#fff3cd', 
+                    border: '1px solid #ffc107', 
+                    borderRadius: '8px',
+                    textAlign: 'center',
+                    color: '#856404'
+                  }}
+                >
+                  <p style={{ margin: 0, fontWeight: 500 }}>
+                    Parents cannot enroll in courses. Only students can enroll.
+                  </p>
+                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', opacity: 0.8 }}>
+                    You can view course information and monitor your connected students' progress.
+                  </p>
                 </div>
               ) : (
                 <button 

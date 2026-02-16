@@ -83,7 +83,11 @@ const CourseList = () => {
     <div className="container">
       <div className="page-header">
         <h1>Explore Courses</h1>
-        <p>Discover and enroll in courses taught by expert instructors</p>
+        <p>
+          {currentUser?.role === 'parent' 
+            ? 'Browse courses and monitor your connected students\' progress' 
+            : 'Discover and enroll in courses taught by expert instructors'}
+        </p>
       </div>
 
       {error && (

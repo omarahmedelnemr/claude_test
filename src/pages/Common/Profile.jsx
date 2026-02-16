@@ -1,14 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import profileService from '../../services/profileService';
+import parentService from '../../services/parentService';
 import courseService from '../../services/courseService';
 import FileUpload from '../../components/Common/FileUpload';
-import { Edit2, Save, X, Loader2, BookMarked, Plus, Trash2, GraduationCap, Briefcase, Award, Users } from 'lucide-react';
+import { Edit2, Save, X, Loader2, BookMarked, Plus, Trash2, GraduationCap, Briefcase, Award, Users, ArrowLeft } from 'lucide-react';
 import './Profile.css';
 
 const Profile = () => {
   const { currentUser, updateProfile } = useAuth();
+  const [searchParams] = useSearchParams();
+  const viewingStudentID = searchParams.get('studentID'); // For parent viewing student profile
+  const isViewingStudent = currentUser?.role === 'parent' && viewingStudentID;
+  
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -39,7 +44,18 @@ const Profile = () => {
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const data = await profileService.getMainInfo();
+      setError('');
+      
+      let data;
+      
+      // If parent is viewing a student profile, fetch student info
+      if (isViewingStudent) {
+        data = await parentService.getStudentInfo(viewingStudentID);
+      } else {
+        // Otherwise fetch current user's profile
+        data = await profileService.getMainInfo();
+      }
+      
       setProfileData(data);
       setFormData({
         name: data.name || '',
@@ -51,10 +67,11 @@ const Profile = () => {
       });
 
       // Fetch student enrollments for stats
-      if (currentUser?.role === 'student' && currentUser?.id) {
+      const studentIDToUse = isViewingStudent ? viewingStudentID : currentUser?.id;
+      if ((currentUser?.role === 'student' || isViewingStudent) && studentIDToUse) {
         try {
           const enrollmentsResponse = await courseService.getStudentEnrollments({
-            studentID: currentUser.id,
+            studentID: studentIDToUse,
             status: 'enrolled',
             limit: 1000,
             loadBlock: 1
@@ -69,8 +86,8 @@ const Profile = () => {
         }
       }
 
-      // Fetch teacher education, experience, and certificates
-      if (currentUser?.role === 'teacher' && currentUser?.id) {
+      // Fetch teacher education, experience, and certificates (only for own profile)
+      if (currentUser?.role === 'teacher' && currentUser?.id && !isViewingStudent) {
         try {
           const [eduRes, expRes, certRes] = await Promise.all([
             profileService.getTeacherEducation(currentUser.id),
@@ -88,7 +105,7 @@ const Profile = () => {
       console.error('Error fetching profile:', err);
       setError('Failed to load profile data');
       // Fallback to currentUser from context
-      if (currentUser) {
+      if (currentUser && !isViewingStudent) {
         setProfileData(currentUser);
         setFormData({
           name: currentUser.name || '',
@@ -109,7 +126,7 @@ const Profile = () => {
     if (currentUser) {
       fetchProfile();
     }
-  }, [currentUser]);
+  }, [currentUser, viewingStudentID]);
 
   const handleChange = (e) => {
     setFormData({
@@ -323,7 +340,7 @@ const Profile = () => {
     return (
       <div className="container profile-page">
         <div className="page-header">
-          <h1>My Profile</h1>
+          <h1>{isViewingStudent ? 'Student Profile' : 'My Profile'}</h1>
           <p>Loading profile information...</p>
         </div>
         <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
@@ -338,8 +355,14 @@ const Profile = () => {
   return (
     <div className="container profile-page">
       <div className="page-header">
-        <h1>My Profile</h1>
-        <p>View and manage your personal information</p>
+        {isViewingStudent && (
+          <Link to="/connected-students" className="back-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: '#2a8f9b', textDecoration: 'none' }}>
+            <ArrowLeft size={20} />
+            Back to My Students
+          </Link>
+        )}
+        <h1>{isViewingStudent ? 'Student Profile' : 'My Profile'}</h1>
+        <p>{isViewingStudent ? 'View student information' : 'View and manage your personal information'}</p>
       </div>
 
       {error && (
@@ -357,31 +380,33 @@ const Profile = () => {
                 alt={displayUser?.name} 
                 className="profile-avatar" 
               />
-              <div className="avatar-upload-overlay">
-                <FileUpload
-                  uploadType="profilePic"
-                  accept="image/*"
-                  maxSize={2}
-                  label="Change Photo"
-                  onUploadComplete={async (file) => {
-                    if (file && file.url) {
-                      try {
-                        setSaving(true);
-                        await profileService.updateProfileImage(file.url);
-                        await fetchProfile();
-                        await updateProfile({ profileImage: file.url });
-                        alert('Profile picture updated successfully!');
-                      } catch (err) {
-                        setError('Failed to update profile picture');
-                      } finally {
-                        setSaving(false);
+              {!isViewingStudent && (
+                <div className="avatar-upload-overlay">
+                  <FileUpload
+                    uploadType="profilePic"
+                    accept="image/*"
+                    maxSize={2}
+                    label="Change Photo"
+                    onUploadComplete={async (file) => {
+                      if (file && file.url) {
+                        try {
+                          setSaving(true);
+                          await profileService.updateProfileImage(file.url);
+                          await fetchProfile();
+                          await updateProfile({ profileImage: file.url });
+                          alert('Profile picture updated successfully!');
+                        } catch (err) {
+                          setError('Failed to update profile picture');
+                        } finally {
+                          setSaving(false);
+                        }
                       }
-                    }
-                  }}
-                  showPreview={false}
-                  className="avatar-upload-btn"
-                />
-              </div>
+                    }}
+                    showPreview={false}
+                    className="avatar-upload-btn"
+                  />
+                </div>
+              )}
             </div>
             <h2>{displayUser?.name}</h2>
             <span className="role-badge">{displayUser?.role}</span>
@@ -407,31 +432,33 @@ const Profile = () => {
           <div className="card">
             <div className="card-header">
               <h3>Personal Information</h3>
-              {!isEditing ? (
-                <button onClick={() => setIsEditing(true)} className="edit-btn">
-                  <Edit2 size={18} />
-                  Edit Profile
-                </button>
-              ) : (
-                <div className="edit-actions">
-                  <button onClick={handleCancel} className="secondary" disabled={saving}>
-                    <X size={18} />
-                    Cancel
+              {!isViewingStudent && (
+                !isEditing ? (
+                  <button onClick={() => setIsEditing(true)} className="edit-btn">
+                    <Edit2 size={18} />
+                    Edit Profile
                   </button>
-                  <button onClick={handleSubmit} disabled={saving}>
-                    {saving ? (
-                      <>
-                        <Loader2 size={18} className="spinner" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save size={18} />
-                        Save Changes
-                      </>
-                    )}
-                  </button>
-                </div>
+                ) : (
+                  <div className="edit-actions">
+                    <button onClick={handleCancel} className="secondary" disabled={saving}>
+                      <X size={18} />
+                      Cancel
+                    </button>
+                    <button onClick={handleSubmit} disabled={saving}>
+                      {saving ? (
+                        <>
+                          <Loader2 size={18} className="spinner" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save size={18} />
+                          Save Changes
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )
               )}
             </div>
 
@@ -541,9 +568,9 @@ const Profile = () => {
             </form>
           </div>
 
-          {currentUser?.role === 'student' && (
+          {(currentUser?.role === 'student' || isViewingStudent) && (
             <div className="card">
-              <h3>My Stats</h3>
+              <h3>{isViewingStudent ? 'Student Stats' : 'My Stats'}</h3>
               <div className="stats-row">
                 <div className="stat-item">
                   <strong>{enrolledCoursesCount}</strong>
