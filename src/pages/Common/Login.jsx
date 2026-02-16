@@ -22,10 +22,25 @@ const Login = () => {
       if (result.success) {
         navigate('/');
       } else {
+        // Display the actual error message from the API
         setError(result.error || 'Login failed. Please try again.');
       }
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+      // Extract error message from various possible error formats
+      const errorMessage = 
+        err?.response?.data?.message || 
+        err?.response?.data?.error || 
+        err?.response?.data || 
+        err?.message || 
+        err?.error ||
+        'An unexpected error occurred. Please try again.';
+      
+      // Handle string errors (backend sometimes returns error as string)
+      const displayError = typeof errorMessage === 'string' 
+        ? errorMessage 
+        : JSON.stringify(errorMessage);
+      
+      setError(displayError);
       console.error('Login error:', err);
     } finally {
       setLoading(false);

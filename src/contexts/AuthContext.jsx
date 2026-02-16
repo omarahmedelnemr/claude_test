@@ -54,9 +54,25 @@ export const AuthProvider = ({ children }) => {
       return { success: true, user };
     } catch (error) {
       console.error('Login error:', error);
+      
+      // Extract error message from various possible formats
+      // API interceptor formats errors as: { message, status, data }
+      // Backend might return error directly in response.data
+      const errorMessage = 
+        error?.message || 
+        error?.response?.data?.message || 
+        error?.response?.data?.error || 
+        error?.response?.data ||
+        'Invalid email or password';
+      
+      // Handle string errors (backend sometimes returns error as string)
+      const displayError = typeof errorMessage === 'string' 
+        ? errorMessage 
+        : JSON.stringify(errorMessage);
+      
       return {
         success: false,
-        error: error.message || 'Invalid email or password'
+        error: displayError
       };
     }
   };

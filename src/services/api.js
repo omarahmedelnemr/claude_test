@@ -51,9 +51,28 @@ api.interceptors.response.use(
       });
     }
 
+    // Extract error message from API response
+    // Backend returns errors as: { status: 406, data: "error message" } where data can be a string
+    let errorMessage = 'An error occurred';
+    if (error.response?.data) {
+      if (typeof error.response.data === 'string') {
+        // Backend returns error message directly as string
+        errorMessage = error.response.data;
+      } else if (error.response.data.message) {
+        // Error object with message property
+        errorMessage = error.response.data.message;
+      } else if (error.response.data.error) {
+        // Error object with error property
+        errorMessage = error.response.data.error;
+      } else {
+        // Try to stringify if it's an object
+        errorMessage = JSON.stringify(error.response.data);
+      }
+    }
+    
     // Return error with message from API
     return Promise.reject({
-      message: error.response?.data?.message || error.response?.data?.error || 'An error occurred',
+      message: errorMessage,
       status: error.response?.status,
       data: error.response?.data,
     });
