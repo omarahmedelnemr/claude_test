@@ -1,0 +1,72 @@
+.analytics-chart-card {
+  padding: 1.5rem;
+  background: var(--card-background, #fff);
+  border: 1px solid var(--border-light, #e0e0e0);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,.06));
+}
+
+.analytics-chart-card.ad-card {
+  /* Inherit admin dashboard card styles */
+}
+
+.chart-header {
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.chart-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.chart-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.chart-content {
+  min-height: 300px;
+}
+
+.chart-loading,
+.chart-error,
+.chart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: #6b7280;
+}
+
+.chart-loading {
+  gap: 1rem;
+}
+
+.chart-loading .spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.chart-error {
+  color: #dc2626;
+}
+
+.chart-empty p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+

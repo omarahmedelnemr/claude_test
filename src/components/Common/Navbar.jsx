@@ -9,7 +9,6 @@ import {
   HelpCircle,
   User,
   LogOut,
-  Layout,
   BookMarked,
   Home,
   Calendar,
@@ -138,10 +137,6 @@ const Navbar = () => {
 
         {(currentUser?.role === 'admin' || currentUser?.role === 'supervisor') && (
           <>
-            <Link to="/" className="nav-link">
-              <Layout size={20} />
-              <span>Admin Panel</span>
-            </Link>
             <Link to="/admin/send-notification" className="nav-link">
               <Bell size={20} />
               <span>Send Notification</span>

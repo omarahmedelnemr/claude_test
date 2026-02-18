@@ -52,6 +52,32 @@
   gap: 1.5rem;
 }
 
+/* ── Stats Grid ──────────────────────────────────────────── */
+.ad-section .stats-grid {
+  display: grid !important;
+  grid-template-columns: repeat(5, 1fr) !important;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 1199px) and (min-width: 768px) {
+  .ad-section .stats-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .ad-section .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .ad-section .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* ── Card ─────────────────────────────────────────────────── */
 .ad-card {
   background: var(--card-background, #fff);
@@ -679,6 +705,31 @@
 @keyframes ad-slide-in {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Analytics Section ────────────────────────────────────── */
+.ad-time-range-wrapper {
+  margin-bottom: 1.5rem;
+}
+
+.ad-analytics-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+.ad-chart-full {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 1300px) {
+  .ad-analytics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ad-chart-full {
+    grid-column: 1 / -1;
+  }
 }
 
 /* ── Responsive ───────────────────────────────────────────── */

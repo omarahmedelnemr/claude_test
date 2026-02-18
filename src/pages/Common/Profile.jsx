@@ -22,6 +22,14 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [enrolledCoursesCount, setEnrolledCoursesCount] = useState(0);
   const [toast, setToast] = useState(null);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
   
   // Teacher-specific data
   const [education, setEducation] = useState([]);
@@ -148,9 +156,11 @@ const Profile = () => {
         await profileService.updateName(formData.name);
       }
 
-      // Update bio (for both Student and Teacher)
-      if (formData.bio !== (profileData?.bio || '')) {
-        await profileService.updateBio(formData.bio);
+      // Update bio (for both Student and Teacher, not for Admin/Supervisor)
+      if (currentUser?.role !== 'admin' && currentUser?.role !== 'supervisor') {
+        if (formData.bio !== (profileData?.bio || '')) {
+          await profileService.updateBio(formData.bio);
+        }
       }
 
       // Update teacher-specific fields
@@ -197,6 +207,59 @@ const Profile = () => {
     setNewEducationTitle('');
     setNewExperienceTitle('');
     setNewCertificateTitle('');
+  };
+
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    setPasswordError('');
+  };
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setPasswordError('');
+    
+    // Validation
+    if (!passwordData.oldPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      setPasswordError('All fields are required');
+      return;
+    }
+    
+    if (passwordData.newPassword.length < 6) {
+      setPasswordError('New password must be at least 6 characters');
+      return;
+    }
+    
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError('New passwords do not match');
+      return;
+    }
+    
+    if (passwordData.oldPassword === passwordData.newPassword) {
+      setPasswordError('New password must be different from old password');
+      return;
+    }
+    
+    setChangingPassword(true);
+    try {
+      await profileService.changePassword(passwordData.oldPassword, passwordData.newPassword);
+      setPasswordData({
+        oldPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      setShowChangePassword(false);
+      setToast({ type: 'success', text: 'Password changed successfully!' });
+      setTimeout(() => setToast(null), 3000);
+    } catch (err) {
+      console.error('Error changing password:', err);
+      setPasswordError(err.response?.data?.message || err.message || 'Failed to change password. Please check your old password.');
+    } finally {
+      setChangingPassword(false);
+    }
   };
 
   // Helper function to fetch only teacher records (without refetching entire profile)
@@ -536,22 +599,25 @@ const Profile = () => {
                 )}
               </div>
 
-              <div className="form-group">
-                <label htmlFor="bio">Bio</label>
-                {isEditing ? (
-                  <textarea
-                    id="bio"
-                    name="bio"
-                    value={formData.bio}
-                    onChange={handleChange}
-                    rows="4"
-                    maxLength={500}
-                    placeholder="Tell us about yourself..."
-                  />
-                ) : (
-                  <p className="form-value">{displayUser?.bio || profileData?.bio || 'No bio provided'}</p>
-                )}
-              </div>
+              {/* Bio field - only for Students and Teachers, not for Admin/Supervisor */}
+              {(currentUser?.role !== 'admin' && currentUser?.role !== 'supervisor') && (
+                <div className="form-group">
+                  <label htmlFor="bio">Bio</label>
+                  {isEditing ? (
+                    <textarea
+                      id="bio"
+                      name="bio"
+                      value={formData.bio}
+                      onChange={handleChange}
+                      rows="4"
+                      maxLength={500}
+                      placeholder="Tell us about yourself..."
+                    />
+                  ) : (
+                    <p className="form-value">{displayUser?.bio || profileData?.bio || 'No bio provided'}</p>
+                  )}
+                </div>
+              )}
 
               {currentUser?.role === 'teacher' && (
                 <>
@@ -607,6 +673,99 @@ const Profile = () => {
                 </>
               )}
             </form>
+
+            {/* Change Password Section */}
+            <div className="card" style={{ marginTop: '1.5rem' }}>
+              <div className="card-header">
+                <h3>Change Password</h3>
+                <button
+                  onClick={() => {
+                    setShowChangePassword(!showChangePassword);
+                    setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
+                    setPasswordError('');
+                  }}
+                  className="edit-btn"
+                  disabled={changingPassword}
+                >
+                  {showChangePassword ? <X size={18} /> : <Edit2 size={18} />}
+                  {showChangePassword ? 'Cancel' : 'Change Password'}
+                </button>
+              </div>
+
+              {showChangePassword && (
+                <form onSubmit={handlePasswordSubmit} className="profile-form">
+                  {passwordError && (
+                    <div className="error-message" style={{ marginBottom: '1rem', padding: '0.75rem', background: '#ffebee', color: '#c62828', borderRadius: '8px' }}>
+                      {passwordError}
+                    </div>
+                  )}
+                  
+                  <div className="form-group">
+                    <label htmlFor="oldPassword">Old Password</label>
+                    <input
+                      type="password"
+                      id="oldPassword"
+                      name="oldPassword"
+                      value={passwordData.oldPassword}
+                      onChange={handlePasswordChange}
+                      required
+                      disabled={changingPassword}
+                      placeholder="Enter your current password"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="newPassword">New Password</label>
+                    <input
+                      type="password"
+                      id="newPassword"
+                      name="newPassword"
+                      value={passwordData.newPassword}
+                      onChange={handlePasswordChange}
+                      required
+                      disabled={changingPassword}
+                      minLength={6}
+                      placeholder="Enter new password (min 6 characters)"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="confirmPassword">Confirm New Password</label>
+                    <input
+                      type="password"
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      value={passwordData.confirmPassword}
+                      onChange={handlePasswordChange}
+                      required
+                      disabled={changingPassword}
+                      minLength={6}
+                      placeholder="Confirm new password"
+                    />
+                  </div>
+
+                  <div className="form-actions">
+                    <button
+                      type="submit"
+                      className="btn-primary"
+                      disabled={changingPassword}
+                    >
+                      {changingPassword ? (
+                        <>
+                          <Loader2 size={18} className="spinner" />
+                          Changing Password...
+                        </>
+                      ) : (
+                        <>
+                          <Save size={18} />
+                          Change Password
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           </div>
 
           {(currentUser?.role === 'student' || isViewingStudent) && (
