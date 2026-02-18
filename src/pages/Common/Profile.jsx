@@ -5,8 +5,9 @@ import profileService from '../../services/profileService';
 import parentService from '../../services/parentService';
 import courseService from '../../services/courseService';
 import FileUpload from '../../components/Common/FileUpload';
-import { Edit2, Save, X, Loader2, BookMarked, Plus, Trash2, GraduationCap, Briefcase, Award, Users, ArrowLeft } from 'lucide-react';
+import { Edit2, Save, X, Loader2, BookMarked, Plus, Trash2, GraduationCap, Briefcase, Award, Users, ArrowLeft, CheckCircle, AlertTriangle } from 'lucide-react';
 import './Profile.css';
+import '../Admin/AdminDashboard.css';
 
 const Profile = () => {
   const { currentUser, updateProfile } = useAuth();
@@ -20,6 +21,7 @@ const Profile = () => {
   const [error, setError] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [enrolledCoursesCount, setEnrolledCoursesCount] = useState(0);
+  const [toast, setToast] = useState(null);
   
   // Teacher-specific data
   const [education, setEducation] = useState([]);
@@ -365,6 +367,14 @@ const Profile = () => {
         <p>{isViewingStudent ? 'View student information' : 'View and manage your personal information'}</p>
       </div>
 
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`ad-toast ${toast.type === 'success' ? 'ad-toast--ok' : 'ad-toast--err'}`} style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999 }}>
+          {toast.type === 'success' ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
+          <span>{toast.text}</span>
+        </div>
+      )}
+
       {error && (
         <div className="error-message" style={{ margin: '1rem 0', padding: '1rem', background: '#fee', color: '#c33', borderRadius: '4px' }}>
           {error}
@@ -375,28 +385,57 @@ const Profile = () => {
         <div className="profile-sidebar">
           <div className="card profile-avatar-section">
             <div className="avatar-upload-container">
-              <img 
-                src={displayUser?.profileImage || displayUser?.avatar || '/default-avatar.png'} 
-                alt={displayUser?.name} 
-                className="profile-avatar" 
-              />
+              {profileData?.profileImage || profileData?.avatar ? (
+                <img 
+                  src={profileData.profileImage || profileData.avatar} 
+                  alt={profileData?.name} 
+                  className="profile-avatar" 
+                  key={profileData.profileImage || profileData.avatar} // Force re-render when image changes
+                  onError={(e) => {
+                    // Fallback to placeholder if image fails to load
+                    e.target.style.display = 'none';
+                    const placeholder = e.target.nextElementSibling;
+                    if (placeholder) placeholder.style.display = 'flex';
+                  }}
+                />
+              ) : null}
+              <div 
+                className="profile-avatar profile-avatar-placeholder"
+                style={{ display: (profileData?.profileImage || profileData?.avatar) ? 'none' : 'flex' }}
+              >
+                <span className="avatar-initials">
+                  {profileData?.name ? (profileData.name.charAt(0).toUpperCase() + (profileData.name.split(' ')[1]?.charAt(0) || '')).toUpperCase() : 'U'}
+                </span>
+              </div>
               {!isViewingStudent && (
                 <div className="avatar-upload-overlay">
                   <FileUpload
                     uploadType="profilePic"
                     accept="image/*"
                     maxSize={2}
-                    label="Change Photo"
+                    label=""
                     onUploadComplete={async (file) => {
                       if (file && file.url) {
                         try {
                           setSaving(true);
                           await profileService.updateProfileImage(file.url);
-                          await fetchProfile();
+                          
+                          // Update image locally without reloading entire component
+                          setProfileData(prev => ({
+                            ...prev,
+                            profileImage: file.url
+                          }));
+                          
+                          // Update auth context
                           await updateProfile({ profileImage: file.url });
-                          alert('Profile picture updated successfully!');
+                          
+                          // Show success toast
+                          setToast({ type: 'success', text: 'Profile picture updated successfully!' });
+                          setTimeout(() => setToast(null), 3000);
                         } catch (err) {
-                          setError('Failed to update profile picture');
+                          // Show error toast
+                          setToast({ type: 'error', text: err.response?.data?.message || 'Failed to update profile picture' });
+                          setTimeout(() => setToast(null), 3000);
                         } finally {
                           setSaving(false);
                         }
@@ -413,19 +452,21 @@ const Profile = () => {
             {displayUser?.title && <p className="title">{displayUser.title}</p>}
           </div>
 
-          {/* Profile Actions */}
-          <div className="card profile-actions">
-            <Link to="/saved-posts" className="profile-action-link">
-              <BookMarked size={20} />
-              <span>Saved Posts</span>
-            </Link>
-            {currentUser?.role === 'student' && (
-              <Link to="/parent-invitations" className="profile-action-link">
-                <Users size={20} />
-                <span>Parent Connection</span>
+          {/* Profile Actions - Hidden for admin/supervisor */}
+          {currentUser && currentUser.role !== 'admin' && currentUser.role !== 'supervisor' && (
+            <div className="card profile-actions">
+              <Link to="/saved-posts" className="profile-action-link">
+                <BookMarked size={20} />
+                <span>Saved Posts</span>
               </Link>
-            )}
-          </div>
+              {currentUser?.role === 'student' && (
+                <Link to="/parent-invitations" className="profile-action-link">
+                  <Users size={20} />
+                  <span>Parent Connection</span>
+                </Link>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="profile-main">

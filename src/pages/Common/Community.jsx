@@ -4,7 +4,7 @@ import communityService from '../../services/communityService';
 import FileUpload from '../../components/Common/FileUpload';
 import ImageGallery from '../../components/Common/ImageGallery';
 import ReportPost from '../../components/Common/ReportPost';
-import { Heart, MessageCircle, Send, Loader, AlertCircle, Bookmark, BookmarkCheck, X, Flag, MoreVertical, Edit2, Save, Trash2, Shield, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Heart, MessageCircle, Send, Loader, AlertCircle, Bookmark, BookmarkCheck, X, Flag, MoreVertical, Edit2, Save, Trash2, Shield, AlertTriangle, CheckCircle, Settings, Plus } from 'lucide-react';
 import api from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 import './Community.css';
@@ -116,6 +116,16 @@ const Community = () => {
   const [reportedPostsOpen, setReportedPostsOpen] = useState(false);
   const [reportedPostsLoading, setReportedPostsLoading] = useState(false);
   const [modToast, setModToast] = useState(null);
+
+  // Community management state (admin/supervisor)
+  const [manageCommunityOpen, setManageCommunityOpen] = useState(false);
+  const [allCommunities, setAllCommunities] = useState([]);
+  const [allCommunitiesLoading, setAllCommunitiesLoading] = useState(false);
+  const [newCommunityName, setNewCommunityName] = useState('');
+  const [newCommunityDesc, setNewCommunityDesc] = useState('');
+  const [newCommunityIcon, setNewCommunityIcon] = useState('');
+  const [creatingCommunity, setCreatingCommunity] = useState(false);
+  const [togglingCommunity, setTogglingCommunity] = useState(null);
 
   // Loading and error states
   const [loading, setLoading] = useState(true);
@@ -295,6 +305,9 @@ const Community = () => {
 
   const handleLike = async (postId, isLiked) => {
     if (!currentUser) return;
+    
+    // Admin cannot like posts
+    if (isAdmin) return;
 
     try {
       const reactionData = {
@@ -326,6 +339,9 @@ const Community = () => {
 
   const handleSavePost = async (postId, isSaved) => {
     if (!currentUser || (currentUser.role !== 'student' && currentUser.role !== 'teacher')) return;
+    
+    // Admin cannot save posts
+    if (isAdmin) return;
 
     try {
       if (isSaved) {
@@ -423,6 +439,9 @@ const Community = () => {
   const handleAddComment = async (postId) => {
     const commentText = newComment[postId];
     if (!commentText?.trim() || !currentUser || (currentUser.role !== 'student' && currentUser.role !== 'teacher')) return;
+    
+    // Admin cannot add comments
+    if (isAdmin) return;
 
     try {
       await communityService.addComment({
@@ -597,6 +616,67 @@ const Community = () => {
       showModToast('success', block ? 'Post blocked.' : 'Report dismissed.');
     } catch {
       showModToast('error', 'Failed to process report.');
+    }
+  };
+
+  // Community management handlers
+  const fetchAllCommunities = async () => {
+    setAllCommunitiesLoading(true);
+    try {
+      const r = await api.get('/admin/communities');
+      setAllCommunities(Array.isArray(r.data) ? r.data : []);
+    } catch {
+      showModToast('error', 'Failed to load communities.');
+    } finally {
+      setAllCommunitiesLoading(false);
+    }
+  };
+
+  const handleToggleManageCommunity = () => {
+    if (!manageCommunityOpen) fetchAllCommunities();
+    setManageCommunityOpen(v => !v);
+  };
+
+  const handleCreateCommunity = async (e) => {
+    e.preventDefault();
+    if (!newCommunityName.trim()) return;
+    setCreatingCommunity(true);
+    try {
+      await api.post('/admin/new-community', {
+        name: newCommunityName.trim(),
+        description: newCommunityDesc.trim(),
+        iconLink: newCommunityIcon.trim()
+      });
+      setNewCommunityName('');
+      setNewCommunityDesc('');
+      setNewCommunityIcon('');
+      showModToast('success', 'Community created.');
+      fetchAllCommunities();
+      // Refresh the sidebar communities list
+      const commData = await communityService.getCommunityList().catch(() => []);
+      setCommunities(Array.isArray(commData) ? commData : []);
+    } catch {
+      showModToast('error', 'Failed to create community.');
+    } finally {
+      setCreatingCommunity(false);
+    }
+  };
+
+  const handleToggleCommunityStatus = async (communityID, currentApproved) => {
+    setTogglingCommunity(communityID);
+    try {
+      await api.post('/admin/community/toggle', { communityID, approved: !currentApproved });
+      setAllCommunities(prev =>
+        prev.map(c => c.id === communityID ? { ...c, approved: !currentApproved } : c)
+      );
+      showModToast('success', `Community ${!currentApproved ? 'activated' : 'deactivated'}.`);
+      // Refresh the sidebar communities list
+      const commData = await communityService.getCommunityList().catch(() => []);
+      setCommunities(Array.isArray(commData) ? commData : []);
+    } catch {
+      showModToast('error', 'Failed to toggle community status.');
+    } finally {
+      setTogglingCommunity(null);
     }
   };
 
@@ -838,6 +918,17 @@ const Community = () => {
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             {isAdmin && (
               <button
+                onClick={handleToggleManageCommunity}
+                className="saved-posts-icon-btn"
+                title="Manage Communities"
+                aria-label="Manage Communities"
+                style={{ background: manageCommunityOpen ? '#6366f1' : undefined }}
+              >
+                <Settings size={22} color="white" strokeWidth={2.5} />
+              </button>
+            )}
+            {isAdmin && (
+              <button
                 onClick={handleToggleReportedPosts}
                 className="saved-posts-icon-btn"
                 title="Reported Posts"
@@ -847,7 +938,7 @@ const Community = () => {
                 <Flag size={22} color="white" strokeWidth={2.5} />
               </button>
             )}
-            {currentUser && (
+            {currentUser && !isAdmin && (
               <button
                 onClick={() => navigate('/saved-posts')}
                 className="saved-posts-icon-btn"
@@ -880,6 +971,98 @@ const Community = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {reportedPosts.map(r => (
                 <ReportedPostRow key={r.reportID} report={r} onDecision={handlePostReportDecision} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Community Management Panel (admin/supervisor only) */}
+      {isAdmin && manageCommunityOpen && (
+        <div className="card" style={{ marginBottom: '16px', border: '2px solid #6366f1' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: '#6366f1' }}>
+              <Settings size={18} /> Manage Communities
+            </h3>
+            <button onClick={() => setManageCommunityOpen(false)} className="close-btn"><X size={18} /></button>
+          </div>
+
+          {/* Create Community Form */}
+          <div style={{ marginBottom: '20px', padding: '16px', background: '#f5f3ff', borderRadius: '8px', border: '1px solid #ddd6fe' }}>
+            <h4 style={{ margin: '0 0 12px', color: '#374151', fontSize: '14px', fontWeight: 600 }}>Create New Community</h4>
+            <form onSubmit={handleCreateCommunity} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <input
+                className="ad-input"
+                placeholder="Community name *"
+                value={newCommunityName}
+                onChange={e => setNewCommunityName(e.target.value)}
+                required
+              />
+              <input
+                className="ad-input"
+                placeholder="Description (optional)"
+                value={newCommunityDesc}
+                onChange={e => setNewCommunityDesc(e.target.value)}
+              />
+              <input
+                className="ad-input"
+                placeholder="Icon URL (optional)"
+                value={newCommunityIcon}
+                onChange={e => setNewCommunityIcon(e.target.value)}
+              />
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="submit"
+                  className="ad-btn ad-btn--primary ad-btn--sm"
+                  disabled={!newCommunityName.trim() || creatingCommunity}
+                >
+                  {creatingCommunity ? 'Creating…' : <><Plus size={14} style={{ display: 'inline', marginRight: '4px' }} />Create Community</>}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* All Communities List */}
+          <h4 style={{ margin: '0 0 12px', color: '#374151', fontSize: '14px', fontWeight: 600 }}>All Communities</h4>
+          {allCommunitiesLoading ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0' }}>
+              <Loader className="spinner" size={20} /> Loading…
+            </div>
+          ) : allCommunities.length === 0 ? (
+            <p style={{ color: '#6b7280', fontStyle: 'italic' }}>No communities found.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {allCommunities.map(community => (
+                <div
+                  key={community.id}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '10px 12px', borderRadius: '8px',
+                    background: community.approved ? '#f0fdf4' : '#fef2f2',
+                    border: `1px solid ${community.approved ? '#bbf7d0' : '#fecaca'}`
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {community.icon && (
+                      <img src={community.icon} alt={community.name} style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} />
+                    )}
+                    <div>
+                      <p style={{ margin: 0, fontWeight: 600, fontSize: '13px', color: '#374151' }}>{community.name}</p>
+                      {community.description && <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>{community.description}</p>}
+                      <span style={{ fontSize: '11px', color: community.approved ? '#16a34a' : '#dc2626', fontWeight: 500 }}>
+                        {community.approved ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    className={`ad-btn ad-btn--sm ${community.approved ? 'ad-btn--danger' : 'ad-btn--success'}`}
+                    onClick={() => handleToggleCommunityStatus(community.id, community.approved)}
+                    disabled={togglingCommunity === community.id}
+                    style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+                  >
+                    {togglingCommunity === community.id ? 'Saving…' : community.approved ? 'Deactivate' : 'Activate'}
+                  </button>
+                </div>
               ))}
             </div>
           )}
@@ -1160,13 +1343,21 @@ const Community = () => {
                   )}
 
                   <div className="post-actions">
-                    <button
-                      onClick={() => handleLike(post.id, post.likedByUser)}
-                      className={`action-btn ${post.likedByUser ? 'liked' : ''}`}
-                    >
-                      <Heart size={18} fill={post.likedByUser ? 'currentColor' : 'none'} />
-                      <span>{post.reactions || 0} Likes</span>
-                    </button>
+                    {!isAdmin && (
+                      <button
+                        onClick={() => handleLike(post.id, post.likedByUser)}
+                        className={`action-btn ${post.likedByUser ? 'liked' : ''}`}
+                      >
+                        <Heart size={18} fill={post.likedByUser ? 'currentColor' : 'none'} />
+                        <span>{post.reactions || 0} Likes</span>
+                      </button>
+                    )}
+                    {isAdmin && (
+                      <div className="action-btn" style={{ cursor: 'default', opacity: 0.6 }}>
+                        <Heart size={18} fill="none" />
+                        <span>{post.reactions || 0} Likes</span>
+                      </div>
+                    )}
                     <button
                       onClick={() => toggleComments(post.id)}
                       className="action-btn"
@@ -1174,7 +1365,7 @@ const Community = () => {
                       <MessageCircle size={18} />
                       <span>{post.commentsNumber || 0} Comments</span>
                     </button>
-                    {(currentUser && (currentUser.role === 'student' || currentUser.role === 'teacher')) && (
+                    {(currentUser && (currentUser.role === 'student' || currentUser.role === 'teacher') && !isAdmin) && (
                       <button
                         onClick={() => handleSavePost(post.id, post.saved)}
                         className={`action-btn ${post.saved ? 'saved' : ''}`}
@@ -1282,8 +1473,8 @@ const Community = () => {
                             </div>
                           )}
 
-                          {/* Add Comment Form - For students and teachers */}
-                          {currentUser && (currentUser.role === 'student' || currentUser.role === 'teacher') && (
+                          {/* Add Comment Form - For students and teachers (not admin) */}
+                          {currentUser && (currentUser.role === 'student' || currentUser.role === 'teacher') && !isAdmin && (
                             <div className="add-comment">
                               <input
                                 type="text"

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Star, BookOpen, Calendar, ArrowLeft, Award, Briefcase, GraduationCap, ChevronDown } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 import courseService from '../../services/courseService';
 import appointmentService from '../../services/appointmentService';
 import './TeacherProfile.css';
@@ -8,11 +9,14 @@ import './TeacherProfile.css';
 const TeacherProfile = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { currentUser } = useAuth();
     const [profile, setProfile] = useState(null);
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('about');
     const [reviewsExpanded, setReviewsExpanded] = useState(false);
+    
+    const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'supervisor';
 
     useEffect(() => {
         if (id) loadProfile();
@@ -101,19 +105,17 @@ const TeacherProfile = () => {
                     <div className="tp-hero-stats">
                         <div className="tp-stat-pill">
                             <BookOpen size={15} />
-                            {profile.completedCourses || 0} completed
-                        </div>
-                        <div className="tp-stat-pill">
-                            <BookOpen size={15} />
                             {courses.length} course{courses.length !== 1 ? 's' : ''}
                         </div>
                         {profile.online && <span className="tp-online-badge">Online</span>}
                     </div>
                 </div>
                 <div className="tp-hero-actions">
-                    <button className="tp-book-btn" onClick={() => navigate(`/appointments/book?teacherID=${id}`)}>
-                        <Calendar size={16} /> Book Appointment
-                    </button>
+                    {!isAdmin && (
+                        <button className="tp-book-btn" onClick={() => navigate(`/appointments/book?teacherID=${id}`)}>
+                            <Calendar size={16} /> Book Appointment
+                        </button>
+                    )}
                 </div>
             </div>
 

@@ -121,66 +121,90 @@ const SavedPosts = () => {
 
     try {
       await communityService.unsavePost(postId);
-
-      // Remove from local state
+      // Remove post from list
       setPosts(posts.filter(post => post.id !== postId));
     } catch (err) {
       console.error('Error unsaving post:', err);
-      setError('Failed to unsave post. Please try again.');
+      alert('Failed to unsave post. Please try again.');
     }
   };
 
   const toggleComments = async (postId) => {
-    if (expandedComments[postId]) {
-      setExpandedComments(prev => {
-        const newState = { ...prev };
-        delete newState[postId];
-        return newState;
-      });
-    } else {
-      setExpandedComments(prev => ({ ...prev, [postId]: true }));
-      if (!postComments[postId]) {
-        try {
-          setLoadingComments(prev => ({ ...prev, [postId]: true }));
-          const comments = await communityService.getComments(postId, 1);
-          const commentsArray = Array.isArray(comments) ? comments : [];
-          
-          // Get total comment count from post
-          const post = posts.find(p => p.id === postId);
-          const totalComments = post?.commentsNumber || 0;
-          
-          setPostComments(prev => ({ ...prev, [postId]: commentsArray }));
-          // Backend returns 2 comments per page
-          setPostCommentsLoadBlock(prev => ({ ...prev, [postId]: 1 }));
-          // Show "See More" only if fetched comments < total comments
-          setPostCommentsHasMore(prev => ({ 
-            ...prev, 
-            [postId]: commentsArray.length < totalComments 
-          }));
-        } catch (err) {
-          console.error('Error fetching comments:', err);
-        } finally {
-          setLoadingComments(prev => ({ ...prev, [postId]: false }));
-        }
+    const isExpanded = expandedComments[postId];
+
+    setExpandedComments(prev => ({
+      ...prev,
+      [postId]: !isExpanded
+    }));
+
+    if (!isExpanded && !postComments[postId]) {
+      try {
+        setLoadingComments(prev => ({ ...prev, [postId]: true }));
+        const comments = await communityService.getComments(postId, 1);
+        const commentsArray = Array.isArray(comments) ? comments : [];
+        setPostComments(prev => ({
+          ...prev,
+          [postId]: commentsArray
+        }));
+        setPostCommentsLoadBlock(prev => ({ ...prev, [postId]: 1 }));
+        setPostCommentsHasMore(prev => ({ 
+          ...prev, 
+          [postId]: commentsArray.length >= 3 && (posts.find(p => p.id === postId)?.commentsNumber || 0) > 3
+        }));
+      } catch (err) {
+        console.error('Error loading comments:', err);
+      } finally {
+        setLoadingComments(prev => ({ ...prev, [postId]: false }));
       }
     }
   };
 
-  const handleAddComment = async (postId) => {
-    if (!currentUser || !newComment[postId]?.trim() || (currentUser.role !== 'student' && currentUser.role !== 'teacher')) return;
+  const loadMoreComments = async (postId) => {
+    if (loadingComments[postId] || !postCommentsHasMore[postId]) return;
 
     try {
-      const commentData = {
+      setLoadingComments(prev => ({ ...prev, [postId]: true }));
+      const currentLoadBlock = postCommentsLoadBlock[postId] || 1;
+      const nextLoadBlock = currentLoadBlock + 1;
+      const comments = await communityService.getComments(postId, nextLoadBlock);
+      const commentsArray = Array.isArray(comments) ? comments : [];
+      
+      const currentComments = postComments[postId] || [];
+      const updatedComments = [...currentComments, ...commentsArray];
+      
+      setPostComments(prev => ({
+        ...prev,
+        [postId]: updatedComments
+      }));
+      
+      const post = posts.find(p => p.id === postId);
+      const totalComments = post?.commentsNumber || 0;
+      
+      setPostCommentsLoadBlock(prev => ({ ...prev, [postId]: nextLoadBlock }));
+      setPostCommentsHasMore(prev => ({ 
+        ...prev, 
+        [postId]: updatedComments.length < totalComments 
+      }));
+    } catch (err) {
+      console.error('Error loading more comments:', err);
+    } finally {
+      setLoadingComments(prev => ({ ...prev, [postId]: false }));
+    }
+  };
+
+  const handleAddComment = async (postId) => {
+    const commentText = newComment[postId];
+    if (!commentText?.trim() || !currentUser || (currentUser.role !== 'student' && currentUser.role !== 'teacher')) return;
+
+    try {
+      await communityService.addComment({
         studentID: currentUser.role === 'student' ? currentUser.id : undefined,
         teacherID: currentUser.role === 'teacher' ? currentUser.id : undefined,
         postID: postId,
-        comment: newComment[postId].trim(),
+        comment: commentText,
         date: new Date().toISOString()
-      };
+      });
 
-      await communityService.addComment(commentData);
-
-      // Update comment count in post (increment by 1)
       const updatedPost = posts.find(post => post.id === postId);
       const newTotalComments = (updatedPost?.commentsNumber || 0) + 1;
       
@@ -190,37 +214,20 @@ const SavedPosts = () => {
           : post
       ));
 
-      // Clear input
       setNewComment(prev => ({ ...prev, [postId]: '' }));
 
-      // Fetch comments with higher limit to cover all comments
-      // Backend returns 2 comments per page, so calculate how many pages we need
-      const pagesNeeded = Math.ceil(newTotalComments / 2);
-      
       try {
         setLoadingComments(prev => ({ ...prev, [postId]: true }));
-        
-        // Fetch all needed pages in parallel
-        const commentPromises = [];
-        for (let page = 1; page <= pagesNeeded; page++) {
-          commentPromises.push(communityService.getComments(postId, page));
-        }
-        
-        const commentPages = await Promise.all(commentPromises);
-        const allComments = commentPages.flat().filter(Boolean);
-        
+        const comments = await communityService.getComments(postId, 1);
+        const commentsArray = Array.isArray(comments) ? comments : [];
         setPostComments(prev => ({
           ...prev,
-          [postId]: allComments
+          [postId]: commentsArray
         }));
-        
-        // Update loadBlock to the last page we fetched
-        setPostCommentsLoadBlock(prev => ({ ...prev, [postId]: pagesNeeded }));
-        
-        // Show "See More" only if we fetched fewer comments than the total
+        setPostCommentsLoadBlock(prev => ({ ...prev, [postId]: 1 }));
         setPostCommentsHasMore(prev => ({ 
           ...prev, 
-          [postId]: allComments.length < newTotalComments 
+          [postId]: commentsArray.length >= 3 && newTotalComments > 3
         }));
       } catch (err) {
         console.error('Error refreshing comments:', err);
@@ -269,54 +276,54 @@ const SavedPosts = () => {
   const handleReportPost = useCallback(async (reportData) => {
     try {
       await communityService.reportPost(reportData);
-      handleCloseReport();
-      
-      // Remove reported post from feed
       setPosts(prevPosts => prevPosts.filter(post => post.id !== reportData.postID));
+      alert('Thank you for your report. Our moderation team will review it.');
+      handleCloseReport();
     } catch (err) {
-      console.error('Error reporting post:', err);
-      throw err;
+      throw new Error(err.response?.data?.message || 'Failed to submit report. Please try again.');
     }
   }, [handleCloseReport]);
 
+  const defaultAvatar = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%236366f1'/%3E%3Ccircle cx='20' cy='15' r='7' fill='white'/%3E%3Cellipse cx='20' cy='33' rx='12' ry='9' fill='white'/%3E%3C/svg%3E`;
+
   if (!currentUser) {
     return (
-      <div className="community-container">
-        <div className="community-main">
-          <div className="card">
-            <p>Please log in to view your saved posts.</p>
-          </div>
+      <div className="container community-page">
+        <div className="empty-state">
+          <p>Please log in to view your saved posts.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="community-container">
-      <div className="community-main">
-        <div className="community-header">
-          <h1>My Saved Posts</h1>
-          <p>Posts you've saved for later</p>
-        </div>
-
-        {error && (
-          <div className="error-message">
-            <p>{error}</p>
+    <div className="container community-page">
+      <div className="page-header">
+        <div className="page-header-content">
+          <div>
+            <h1>My Saved Posts</h1>
+            <p>Posts you've saved for later</p>
           </div>
-        )}
+        </div>
+      </div>
 
-        {/* Posts List */}
+      {error && (
+        <div className="error-banner">
+          <span>{error}</span>
+          <button onClick={() => setError(null)}>Dismiss</button>
+        </div>
+      )}
+
+      <div className="posts-section">
         <div className="posts-list">
-          {loading ? (
-            <div className="loading-posts">
-              <Loader className="spinner" size={32} />
+          {loading && posts.length === 0 ? (
+            <div className="loading-container">
+              <Loader className="spinner" size={48} />
               <span>Loading saved posts...</span>
             </div>
           ) : posts.length === 0 ? (
             <div className="no-posts">
-              <BookmarkCheck size={48} />
               <p>No saved posts yet.</p>
-              <p>Save posts from the community to see them here!</p>
             </div>
           ) : (
             <>
@@ -324,23 +331,32 @@ const SavedPosts = () => {
                 <div key={post.id} className="card post-card">
                   <div className="post-header">
                     <img
-                      src={post.hideIdentity ? '/anonymous-avatar.png' : (post.userProfileImage || '/default-avatar.png')}
+                      src={post.hideIdentity ? defaultAvatar : (post.userProfileImage || defaultAvatar)}
                       alt={post.hideIdentity ? 'Anonymous' : post.userName}
                     />
                     <div className="post-header-info">
                       <h4>{post.hideIdentity ? 'Anonymous' : post.userName}</h4>
                       {post.community && <span className="post-community">{post.community}</span>}
                       <span className="post-time">{formatDate(post.date)}</span>
-                      {post.edited ? <span className="post-edited">(edited)</span>:""}
                     </div>
-                    <button
-                      className="post-report-btn"
-                      onClick={() => handleOpenReport(post.id)}
-                      aria-label="Report post"
-                      title="Report post"
-                    >
-                      <Flag size={18} />
-                    </button>
+                    <div className="post-header-actions">
+                      <button
+                        onClick={() => handleUnsavePost(post.id)}
+                        className="post-report-btn"
+                        title="Unsave post"
+                        aria-label="Unsave post"
+                      >
+                        <BookmarkCheck size={18} fill="currentColor" />
+                      </button>
+                      <button
+                        className="post-report-btn"
+                        onClick={() => handleOpenReport(post.id)}
+                        aria-label="Report post"
+                        title="Report post"
+                      >
+                        <Flag size={18} />
+                      </button>
+                    </div>
                   </div>
                   <div className="post-content">
                     <p>{post.mainText}</p>
@@ -385,6 +401,7 @@ const SavedPosts = () => {
                   <div className="post-stats">
                     <span>{post.views || 0} views</span>
                   </div>
+
                   <div className="post-actions">
                     <button
                       onClick={() => handleLike(post.id, post.likedByUser)}
@@ -399,14 +416,6 @@ const SavedPosts = () => {
                     >
                       <MessageCircle size={18} />
                       <span>{post.commentsNumber || 0} Comments</span>
-                    </button>
-                    <button
-                      onClick={() => handleUnsavePost(post.id)}
-                      className="action-btn saved"
-                      title="Remove from saved"
-                    >
-                      <BookmarkCheck size={18} />
-                      <span>Saved</span>
                     </button>
                   </div>
 
@@ -423,18 +432,21 @@ const SavedPosts = () => {
                           {postComments[post.id]?.map(comment => (
                             <div key={comment.id} className="comment">
                               <img
-                                src={comment.userProfileImage || '/default-avatar.png'}
+                                src={comment.userProfileImage || defaultAvatar}
                                 alt={comment.userName}
                               />
                               <div className="comment-content">
-                                <strong>{comment.userName}</strong>
+                                <div className="comment-header">
+                                  <div>
+                                    <strong>{comment.userName}</strong>
+                                    <span className="comment-time">{formatDate(comment.date)}</span>
+                                  </div>
+                                </div>
                                 <p>{comment.comment}</p>
-                                <span className="comment-time">{formatDate(comment.date)}</span>
                               </div>
                             </div>
                           ))}
 
-                          {/* See More Comments Button */}
                           {postCommentsHasMore[post.id] && (
                             <div className="load-more-comments">
                               <button
@@ -454,7 +466,6 @@ const SavedPosts = () => {
                             </div>
                           )}
 
-                          {/* Add Comment Form */}
                           {currentUser && (currentUser.role === 'student' || currentUser.role === 'teacher') && (
                             <div className="add-comment">
                               <input

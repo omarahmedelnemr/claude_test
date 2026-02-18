@@ -100,6 +100,11 @@ const BlogDetail = () => {
       return;
     }
 
+    // Admin cannot like articles
+    if (isAdmin) {
+      return;
+    }
+
     // All user types (teacher, student, parent) can like articles
     if (currentUser.role !== 'teacher' && currentUser.role !== 'student' && currentUser.role !== 'parent') {
       alert('Please login to like articles');
@@ -398,14 +403,21 @@ const BlogDetail = () => {
                   <Flag size={18} /> Report
                 </button>
               )}
-              <button
-                onClick={handleLike}
-                className={`like-btn ${liked ? 'liked' : ''}`}
-                disabled={!currentUser || (currentUser.role !== 'teacher' && currentUser.role !== 'student' && currentUser.role !== 'parent')}
-              >
-                <Heart size={20} fill={liked ? '#e74c3c' : 'none'} />
-                <span>{likes}</span>
-              </button>
+              {!isAdmin ? (
+                <button
+                  onClick={handleLike}
+                  className={`like-btn ${liked ? 'liked' : ''}`}
+                  disabled={!currentUser || (currentUser.role !== 'teacher' && currentUser.role !== 'student' && currentUser.role !== 'parent')}
+                >
+                  <Heart size={20} fill={liked ? '#e74c3c' : 'none'} />
+                  <span>{likes}</span>
+                </button>
+              ) : (
+                <div className="like-btn" style={{ cursor: 'default', opacity: 0.6, pointerEvents: 'none' }}>
+                  <Heart size={20} fill="none" />
+                  <span>{likes}</span>
+                </div>
+              )}
             </div>
           </div>
         </header>

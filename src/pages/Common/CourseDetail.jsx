@@ -130,6 +130,7 @@ const CourseDetail = () => {
 
   const isTeacher = currentUser?.id === (course.teacherID || course.teacher?.id);
   const isParent = currentUser?.role === 'parent';
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'supervisor';
 
   return (
     <div className="course-detail-page">
@@ -145,12 +146,6 @@ const CourseDetail = () => {
             <h1 className="course-title">{course.title}</h1>
             <p className="course-description-preview">{course.description || 'No description available'}</p>
             <div className="course-meta-info">
-              {course.rating && (
-                <div className="meta-item">
-                  <Star size={18} fill="#fbbf24" color="#fbbf24" />
-                  <span>{course.rating.toFixed(1)}</span>
-                </div>
-              )}
               {course.enrolledCount !== undefined && (
                 <div className="meta-item">
                   <UsersIcon size={18} />
@@ -304,6 +299,25 @@ const CourseDetail = () => {
                   </p>
                   <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', opacity: 0.8 }}>
                     You can view course information and monitor your connected students' progress.
+                  </p>
+                </div>
+              ) : isAdmin ? (
+                <div 
+                  style={{ 
+                    padding: '1rem', 
+                    background: '#e3f2fd', 
+                    border: '1px solid #2196f3', 
+                    borderRadius: '8px',
+                    textAlign: 'center',
+                    color: '#1565c0',
+                    marginBottom: '1rem'
+                  }}
+                >
+                  <p style={{ margin: 0, fontWeight: 500 }}>
+                    Admin users cannot enroll in courses.
+                  </p>
+                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', opacity: 0.8 }}>
+                    You can view course information and manage course content.
                   </p>
                 </div>
               ) : (

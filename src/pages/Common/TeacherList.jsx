@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Star, ChevronLeft, ChevronRight, ArrowUpDown, Calendar, User } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 import appointmentService from '../../services/appointmentService';
 import './TeacherList.css';
 
 const TeacherList = () => {
     const navigate = useNavigate();
+    const { currentUser } = useAuth();
     const [teachers, setTeachers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -14,6 +16,8 @@ const TeacherList = () => {
     const [page, setPage] = useState(1);
     const [pagination, setPagination] = useState({ total: 0, totalPages: 1, hasNextPage: false, hasPreviousPage: false });
     const LIMIT = 12;
+    
+    const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'supervisor';
 
     useEffect(() => {
         loadTeachers();
@@ -160,10 +164,12 @@ const TeacherList = () => {
                                         <User size={15} />
                                         View Profile
                                     </button>
-                                    <button className="tl-book-btn" onClick={() => handleBookTeacher(teacher.id)}>
-                                        <Calendar size={15} />
-                                        Book
-                                    </button>
+                                    {!isAdmin && (
+                                        <button className="tl-book-btn" onClick={() => handleBookTeacher(teacher.id)}>
+                                            <Calendar size={15} />
+                                            Book
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         ))}
