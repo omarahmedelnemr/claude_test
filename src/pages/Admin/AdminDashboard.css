@@ -60,19 +60,19 @@
   margin-bottom: 1.5rem;
 }
 
-@media (max-width: 1199px) and (min-width: 768px) {
+@media (max-width: 1560px) and (min-width: 1150px) {
   .ad-section .stats-grid {
     grid-template-columns: repeat(3, 1fr) !important;
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 1149px) and (min-width: 920px) {
   .ad-section .stats-grid {
     grid-template-columns: repeat(2, 1fr) !important;
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 920px) {
   .ad-section .stats-grid {
     grid-template-columns: 1fr !important;
   }
