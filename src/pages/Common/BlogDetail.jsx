@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import blogService from '../../services/blogService';
-import { Calendar, Eye, Heart, ArrowLeft, Loader2, MessageCircle, Send, Edit, Trash2 } from 'lucide-react';
+import { Calendar, Eye, Heart, ArrowLeft, Loader2, MessageCircle, Send, Edit, Trash2, Shield, Flag, AlertTriangle, CheckCircle } from 'lucide-react';
+import api from '../../services/api';
 import './BlogDetail.css';
+import '../Admin/AdminDashboard.css';
 
 const BlogDetail = () => {
   const { id } = useParams();
@@ -21,6 +23,15 @@ const BlogDetail = () => {
   const [hasMoreComments, setHasMoreComments] = useState(false);
   const [deletingArticle, setDeletingArticle] = useState(false);
   const [deletingComment, setDeletingComment] = useState(null);
+
+  // Admin moderation state
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'supervisor';
+  const [blockArticleReason, setBlockArticleReason] = useState('');
+  const [showBlockArticle, setShowBlockArticle] = useState(false);
+  const [blockCommentTarget, setBlockCommentTarget] = useState(null); // { id, reason }
+  const [reportReason, setReportReason] = useState('');
+  const [showReportForm, setShowReportForm] = useState(false);
+  const [modToast, setModToast] = useState(null);
 
   useEffect(() => {
     const fetchArticle = async () => {
@@ -179,6 +190,46 @@ const BlogDetail = () => {
     });
   };
 
+  const showModToast = (type, text) => {
+    setModToast({ type, text });
+    setTimeout(() => setModToast(null), 3500);
+  };
+
+  const handleAdminBlockArticle = async () => {
+    if (!blockArticleReason.trim()) return;
+    try {
+      await api.delete('/admin/moderation/article', { data: { articleID: id, reason: blockArticleReason } });
+      showModToast('success', 'Article blocked.');
+      setTimeout(() => { window.location.href = '/blog'; }, 1500);
+    } catch {
+      showModToast('error', 'Failed to block article.');
+    }
+  };
+
+  const handleAdminBlockComment = async (commentId, reason) => {
+    if (!reason.trim()) return;
+    try {
+      await api.delete('/admin/moderation/article-comment', { data: { commentID: commentId, reason } });
+      setComments(prev => prev.filter(c => c.id !== commentId));
+      setBlockCommentTarget(null);
+      showModToast('success', 'Comment blocked.');
+    } catch {
+      showModToast('error', 'Failed to block comment.');
+    }
+  };
+
+  const handleReportArticle = async () => {
+    if (!reportReason.trim()) return;
+    try {
+      await api.post('/blog/report-article', { articleID: id, reason: reportReason });
+      setShowReportForm(false);
+      setReportReason('');
+      showModToast('success', 'Report submitted. Thank you!');
+    } catch {
+      showModToast('error', 'Failed to submit report.');
+    }
+  };
+
   // Check if article belongs to current user (teacher)
   const isMyArticle = () => {
     if (!currentUser || !article) return false;
@@ -257,8 +308,18 @@ const BlogDetail = () => {
     }
   };
 
+  const defaultAvatar = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%236366f1'/%3E%3Ccircle cx='20' cy='15' r='7' fill='white'/%3E%3Cellipse cx='20' cy='33' rx='12' ry='9' fill='white'/%3E%3C/svg%3E`;
+
   return (
     <div className="container blog-detail-page">
+      {/* Moderation toast */}
+      {modToast && (
+        <div className={`ad-toast ${modToast.type === 'success' ? 'ad-toast--ok' : 'ad-toast--err'}`} style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999 }}>
+          {modToast.type === 'success' ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
+          <span>{modToast.text}</span>
+        </div>
+      )}
+
       <Link to="/blog" className="back-link">
         <ArrowLeft size={18} />
         Back to Blog
@@ -275,7 +336,7 @@ const BlogDetail = () => {
           <div className="article-meta">
             <div className="author-section">
               <img 
-                src={article.teacherProfileImage || article.teacher?.profileImage || article.author?.avatar || '/default-avatar.png'} 
+                src={article.teacherProfileImage || article.teacher?.profileImage || article.author?.avatar || defaultAvatar}
                 alt={article.teacherName || article.teacher?.name || article.author?.name || 'Teacher'} 
               />
               <div>
@@ -317,6 +378,26 @@ const BlogDetail = () => {
                   </button>
                 </>
               )}
+              {isAdmin && (
+                <button
+                  onClick={() => setShowBlockArticle(v => !v)}
+                  className="delete-article-btn"
+                  title="Block article (admin)"
+                  style={{ color: '#ef4444', borderColor: '#ef4444' }}
+                >
+                  <Shield size={18} /> Block
+                </button>
+              )}
+              {!isAdmin && !isMyArticle() && currentUser && (
+                <button
+                  onClick={() => setShowReportForm(v => !v)}
+                  className="delete-article-btn"
+                  title="Report article"
+                  style={{ color: '#f59e0b', borderColor: '#f59e0b' }}
+                >
+                  <Flag size={18} /> Report
+                </button>
+              )}
               <button
                 onClick={handleLike}
                 className={`like-btn ${liked ? 'liked' : ''}`}
@@ -328,6 +409,40 @@ const BlogDetail = () => {
             </div>
           </div>
         </header>
+
+        {/* Admin block article form */}
+        {isAdmin && showBlockArticle && (
+          <div style={{ padding: '12px', background: '#fff5f5', border: '1px solid #fecaca', borderRadius: '8px', marginBottom: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <input
+              className="ad-input"
+              placeholder="Reason for blocking this article…"
+              value={blockArticleReason}
+              onChange={e => setBlockArticleReason(e.target.value)}
+              style={{ flex: 1, minWidth: '200px' }}
+            />
+            <button className="ad-btn ad-btn--danger ad-btn--sm" onClick={handleAdminBlockArticle} disabled={!blockArticleReason.trim()}>
+              Confirm Block
+            </button>
+            <button className="ad-btn ad-btn--ghost ad-btn--sm" onClick={() => setShowBlockArticle(false)}>Cancel</button>
+          </div>
+        )}
+
+        {/* Report article form (for non-admin users) */}
+        {!isAdmin && showReportForm && (
+          <div style={{ padding: '12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', marginBottom: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <input
+              className="ad-input"
+              placeholder="Reason for reporting this article…"
+              value={reportReason}
+              onChange={e => setReportReason(e.target.value)}
+              style={{ flex: 1, minWidth: '200px' }}
+            />
+            <button className="ad-btn ad-btn--primary ad-btn--sm" onClick={handleReportArticle} disabled={!reportReason.trim()}>
+              Submit Report
+            </button>
+            <button className="ad-btn ad-btn--ghost ad-btn--sm" onClick={() => setShowReportForm(false)}>Cancel</button>
+          </div>
+        )}
 
         {article.coverImage && (
           <img src={article.coverImage} alt={article.title} className="article-image" />
@@ -372,7 +487,7 @@ const BlogDetail = () => {
                   {comments.map(comment => (
                     <div key={comment.id} className="comment-item">
                       <img
-                        src={comment.userProfileImage || comment.teacherProfileImage || '/default-avatar.png'}
+                        src={comment.userProfileImage || comment.teacherProfileImage || defaultAvatar}
                         alt={comment.userName || comment.teacherName || 'User'}
                         className="comment-avatar"
                       />
@@ -385,21 +500,55 @@ const BlogDetail = () => {
                             )}
                             <span className="comment-date">{formatDate(comment.date)}</span>
                           </div>
-                          {isMyComment(comment) && (
-                            <button
-                              onClick={() => handleDeleteComment(comment.id)}
-                              disabled={deletingComment === comment.id}
-                              className="comment-delete-btn"
-                              aria-label="Delete comment"
-                            >
-                              {deletingComment === comment.id ? (
-                                <Loader2 size={14} className="spinner" />
-                              ) : (
-                                <Trash2 size={14} />
-                              )}
-                            </button>
-                          )}
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            {isMyComment(comment) && (
+                              <button
+                                onClick={() => handleDeleteComment(comment.id)}
+                                disabled={deletingComment === comment.id}
+                                className="comment-delete-btn"
+                                aria-label="Delete comment"
+                              >
+                                {deletingComment === comment.id ? (
+                                  <Loader2 size={14} className="spinner" />
+                                ) : (
+                                  <Trash2 size={14} />
+                                )}
+                              </button>
+                            )}
+                            {isAdmin && (
+                              <button
+                                onClick={() => setBlockCommentTarget(
+                                  blockCommentTarget?.id === comment.id ? null : { id: comment.id, reason: '' }
+                                )}
+                                className="comment-delete-btn"
+                                title="Block comment (admin)"
+                                style={{ color: '#ef4444' }}
+                              >
+                                <Shield size={14} />
+                              </button>
+                            )}
+                          </div>
                         </div>
+                        {isAdmin && blockCommentTarget?.id === comment.id && (
+                          <div style={{ display: 'flex', gap: '6px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                            <input
+                              className="ad-input"
+                              placeholder="Reason…"
+                              value={blockCommentTarget.reason}
+                              onChange={e => setBlockCommentTarget(x => ({ ...x, reason: e.target.value }))}
+                              style={{ flex: 1, minWidth: '140px', fontSize: '13px', padding: '4px 8px' }}
+                            />
+                            <button
+                              className="ad-btn ad-btn--danger ad-btn--sm"
+                              onClick={() => handleAdminBlockComment(comment.id, blockCommentTarget.reason)}
+                              disabled={!blockCommentTarget.reason.trim()}
+                            >Block</button>
+                            <button
+                              className="ad-btn ad-btn--ghost ad-btn--sm"
+                              onClick={() => setBlockCommentTarget(null)}
+                            >Cancel</button>
+                          </div>
+                        )}
                         <p>{comment.comment}</p>
                         {comment.likes !== undefined && comment.likes > 0 && (
                           <div className="comment-likes">

@@ -1,8 +1,10 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { Loader2 } from 'lucide-react';
 import Login from './pages/Common/Login';
 import Signup from './pages/Common/Signup';
 import AdminDashboard from './pages/Admin/AdminDashboard';
+import SendNotification from './pages/Admin/SendNotification';
 import TeacherDashboard from './pages/Teacher/TeacherDashboard';
 import StudentDashboard from './pages/Student/StudentDashboard';
 import ParentDashboard from './pages/Parent/ParentDashboard';
@@ -41,20 +43,45 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(currentUser.role)) {
-    return <Navigate to="/" replace />;
+  if (allowedRoles) {
+    // Normalize role for comparison (handle both 'admin' and 'supervisor' as admin)
+    const userRole = currentUser.role?.toLowerCase();
+    const normalizedAllowedRoles = allowedRoles.map(role => role.toLowerCase());
+    
+    // Check if user role matches, treating 'supervisor' as 'admin'
+    const roleMatches = normalizedAllowedRoles.includes(userRole) || 
+      (userRole === 'supervisor' && normalizedAllowedRoles.includes('admin')) ||
+      (userRole === 'admin' && normalizedAllowedRoles.includes('supervisor'));
+    
+    if (!roleMatches) {
+      return <Navigate to="/" replace />;
+    }
   }
 
   return children;
 };
 
 const AppRoutes = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, loading } = useAuth();
+  
   const getDashboard = () => {
+    // Wait for auth to finish loading before checking user
+    if (loading) {
+      return (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+          <Loader2 size={48} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
+        </div>
+      );
+    }
+    
     if (!currentUser) return <Navigate to="/login" replace />;
 
-    switch (currentUser.role) {
+    // Normalize role for comparison (handle both 'admin' and 'supervisor' as admin)
+    const userRole = currentUser.role?.toLowerCase();
+    
+    switch (userRole) {
       case 'admin':
+      case 'supervisor':
         return <AdminDashboard />;
       case 'teacher':
         return <TeacherDashboard />;
@@ -69,8 +96,34 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      <Route path="/login" element={currentUser ? <Navigate to="/" replace /> : <Login />} />
-      <Route path="/signup" element={currentUser ? <Navigate to="/" replace /> : <Signup />} />
+      <Route 
+        path="/login" 
+        element={
+          loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+              <Loader2 size={48} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
+            </div>
+          ) : currentUser ? (
+            <Navigate to="/" replace />
+          ) : (
+            <Login />
+          )
+        } 
+      />
+      <Route 
+        path="/signup" 
+        element={
+          loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+              <Loader2 size={48} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
+            </div>
+          ) : currentUser ? (
+            <Navigate to="/" replace />
+          ) : (
+            <Signup />
+          )
+        } 
+      />
 
       <Route path="/" element={<Layout />}>
         <Route index element={getDashboard()} />
@@ -224,6 +277,15 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="admin/send-notification"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <SendNotification />
             </ProtectedRoute>
           }
         />

@@ -4,9 +4,69 @@ import communityService from '../../services/communityService';
 import FileUpload from '../../components/Common/FileUpload';
 import ImageGallery from '../../components/Common/ImageGallery';
 import ReportPost from '../../components/Common/ReportPost';
-import { Heart, MessageCircle, Image, Send, Loader, AlertCircle, Bookmark, BookmarkCheck, X, Flag, MoreVertical, Edit2, Save, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Send, Loader, AlertCircle, Bookmark, BookmarkCheck, X, Flag, MoreVertical, Edit2, Save, Trash2, Shield, AlertTriangle, CheckCircle } from 'lucide-react';
+import api from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 import './Community.css';
+import '../Admin/AdminDashboard.css';
+
+const ReportedPostRow = ({ report, onDecision }) => {
+  const [reason, setReason] = useState('');
+  const [blocking, setBlocking] = useState(false);
+
+  const handleBlock = async () => {
+    if (!reason.trim()) return;
+    setBlocking(true);
+    await onDecision(report.reportID, true, report.postID, reason);
+    setBlocking(false);
+  };
+
+  return (
+    <div style={{ padding: '12px', border: '1px solid #fee2e2', borderRadius: '8px', background: '#fff5f5' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', flexWrap: 'wrap' }}>
+        <div style={{ flex: 1 }}>
+          <p style={{ margin: '0 0 4px', fontWeight: 600, fontSize: '13px', color: '#374151' }}>
+            Post by <span style={{ color: '#6366f1' }}>{report.postAuthor || 'Unknown'}</span>
+            {report.community && <span style={{ marginLeft: '6px', color: '#9ca3af', fontWeight: 400 }}>in {report.community}</span>}
+          </p>
+          <p style={{ margin: '0 0 4px', fontSize: '13px', color: '#6b7280' }}>
+            &ldquo;{(report.postText || '').slice(0, 120)}{(report.postText || '').length > 120 ? '…' : ''}&rdquo;
+          </p>
+          <p style={{ margin: 0, fontSize: '12px', color: '#9ca3af' }}>
+            Reported by <strong>{report.reporterName || 'Unknown'}</strong>
+            {report.reportType && <span> · {report.reportType}</span>}
+            {' · '}{report.reason}
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+          <button
+            className="ad-btn ad-btn--ghost ad-btn--sm"
+            onClick={() => onDecision(report.reportID, false, report.postID, '')}
+            title="Dismiss report"
+          >
+            Dismiss
+          </button>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
+        <input
+          className="ad-input"
+          placeholder="Reason to block post…"
+          value={reason}
+          onChange={e => setReason(e.target.value)}
+          style={{ flex: 1, minWidth: '180px', fontSize: '13px', padding: '4px 8px' }}
+        />
+        <button
+          className="ad-btn ad-btn--danger ad-btn--sm"
+          onClick={handleBlock}
+          disabled={!reason.trim() || blocking}
+        >
+          {blocking ? 'Blocking…' : 'Block Post'}
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const Community = () => {
   const { currentUser } = useAuth();
@@ -48,6 +108,14 @@ const Community = () => {
   const [editMenuOpen, setEditMenuOpen] = useState(null); // Track which post's menu is open
   const [deletingPost, setDeletingPost] = useState(null); // Track which post is being deleted
   const [deletingComment, setDeletingComment] = useState(null); // Track which comment is being deleted
+
+  // Admin moderation state
+  const [blockPostTarget, setBlockPostTarget] = useState(null); // { id, reason }
+  const [blockCommentTarget, setBlockCommentTarget] = useState(null); // { id, reason, postId }
+  const [reportedPosts, setReportedPosts] = useState([]);
+  const [reportedPostsOpen, setReportedPostsOpen] = useState(false);
+  const [reportedPostsLoading, setReportedPostsLoading] = useState(false);
+  const [modToast, setModToast] = useState(null);
 
   // Loading and error states
   const [loading, setLoading] = useState(true);
@@ -472,6 +540,66 @@ const Community = () => {
     return false;
   };
 
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'supervisor';
+
+  const showModToast = (type, text) => {
+    setModToast({ type, text });
+    setTimeout(() => setModToast(null), 3500);
+  };
+
+  const fetchReportedPosts = async () => {
+    setReportedPostsLoading(true);
+    try {
+      const r = await api.get('/admin/moderation/reported-posts');
+      setReportedPosts(Array.isArray(r.data) ? r.data : []);
+    } catch {
+      showModToast('error', 'Failed to load reported posts.');
+    } finally {
+      setReportedPostsLoading(false);
+    }
+  };
+
+  const handleToggleReportedPosts = () => {
+    if (!reportedPostsOpen) fetchReportedPosts();
+    setReportedPostsOpen(v => !v);
+  };
+
+  const handleAdminBlockPost = async (postId, reason) => {
+    try {
+      await api.delete('/admin/moderation/post', { data: { postID: postId, reason } });
+      setPosts(prev => prev.filter(p => p.id !== postId));
+      setBlockPostTarget(null);
+      showModToast('success', 'Post blocked.');
+    } catch {
+      showModToast('error', 'Failed to block post.');
+    }
+  };
+
+  const handleAdminBlockComment = async (commentId, postId, reason) => {
+    try {
+      await api.delete('/admin/moderation/post-comment', { data: { commentID: commentId, reason } });
+      setPostComments(prev => ({
+        ...prev,
+        [postId]: (prev[postId] || []).filter(c => c.id !== commentId)
+      }));
+      setBlockCommentTarget(null);
+      showModToast('success', 'Comment blocked.');
+    } catch {
+      showModToast('error', 'Failed to block comment.');
+    }
+  };
+
+  const handlePostReportDecision = async (reportID, block, postID, reason) => {
+    try {
+      await api.post('/admin/moderation/post-report-decision', { reportID, block, reason: reason || '' });
+      if (block) setPosts(prev => prev.filter(p => p.id !== postID));
+      setReportedPosts(prev => prev.filter(r => r.reportID !== reportID));
+      showModToast('success', block ? 'Post blocked.' : 'Report dismissed.');
+    } catch {
+      showModToast('error', 'Failed to process report.');
+    }
+  };
+
   const handleOpenEditMenu = (postId, e) => {
     e.stopPropagation();
     setEditMenuOpen(editMenuOpen === postId ? null : postId);
@@ -689,26 +817,74 @@ const Community = () => {
     );
   }
 
+  const defaultAvatar = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%236366f1'/%3E%3Ccircle cx='20' cy='15' r='7' fill='white'/%3E%3Cellipse cx='20' cy='33' rx='12' ry='9' fill='white'/%3E%3C/svg%3E`;
+
   return (
     <div className="container community-page">
+      {/* Admin moderation toast */}
+      {modToast && (
+        <div className={`ad-toast ${modToast.type === 'success' ? 'ad-toast--ok' : 'ad-toast--err'}`} style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999 }}>
+          {modToast.type === 'success' ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
+          <span>{modToast.text}</span>
+        </div>
+      )}
+
       <div className="page-header">
         <div className="page-header-content">
           <div>
             <h1>Community</h1>
             <p>Connect, share, and learn together</p>
           </div>
-          {currentUser && (
-            <button
-              onClick={() => navigate('/saved-posts')}
-              className="saved-posts-icon-btn"
-              title="View Saved Posts"
-              aria-label="View Saved Posts"
-            >
-              <BookmarkCheck size={24} color="white" strokeWidth={2.5} />
-            </button>
-          )}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {isAdmin && (
+              <button
+                onClick={handleToggleReportedPosts}
+                className="saved-posts-icon-btn"
+                title="Reported Posts"
+                aria-label="Reported Posts"
+                style={{ background: reportedPostsOpen ? '#ef4444' : undefined }}
+              >
+                <Flag size={22} color="white" strokeWidth={2.5} />
+              </button>
+            )}
+            {currentUser && (
+              <button
+                onClick={() => navigate('/saved-posts')}
+                className="saved-posts-icon-btn"
+                title="View Saved Posts"
+                aria-label="View Saved Posts"
+              >
+                <BookmarkCheck size={24} color="white" strokeWidth={2.5} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Reported Posts Panel (admin/supervisor only) */}
+      {isAdmin && reportedPostsOpen && (
+        <div className="card" style={{ marginBottom: '16px', border: '2px solid #ef4444' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}>
+              <Flag size={18} /> Reported Posts
+            </h3>
+            <button onClick={() => setReportedPostsOpen(false)} className="close-btn"><X size={18} /></button>
+          </div>
+          {reportedPostsLoading ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 0' }}>
+              <Loader className="spinner" size={20} /> Loading…
+            </div>
+          ) : reportedPosts.length === 0 ? (
+            <p style={{ color: '#6b7280', fontStyle: 'italic' }}>No unreviewed reports.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {reportedPosts.map(r => (
+                <ReportedPostRow key={r.reportID} report={r} onDecision={handlePostReportDecision} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="error-banner">
@@ -745,7 +921,7 @@ const Community = () => {
           {currentUser && (currentUser.role === 'student' || currentUser.role === 'teacher') && (
             <div className="card create-post">
               <div className="create-post-header">
-                <img src={currentUser.profileImage || currentUser.avatar || '/default-avatar.png'} alt={currentUser.name} />
+                <img src={currentUser.profileImage || currentUser.avatar || defaultAvatar} alt={currentUser.name} />
                 <h3>What's on your mind, {currentUser.name}?</h3>
               </div>
               <form onSubmit={handleCreatePost}>
@@ -842,7 +1018,7 @@ const Community = () => {
                 <div key={post.id} className="card post-card">
                   <div className="post-header">
                     <img
-                      src={post.hideIdentity ? '/anonymous-avatar.png' : (post.userProfileImage || '/default-avatar.png')}
+                      src={post.hideIdentity ? defaultAvatar : (post.userProfileImage || defaultAvatar)}
                       alt={post.hideIdentity ? 'Anonymous' : post.userName}
                     />
                     <div className="post-header-info">
@@ -890,7 +1066,7 @@ const Community = () => {
                           )}
                         </div>
                       )}
-                      {!isMyPost(post) && (
+                      {!isMyPost(post) && !isAdmin && (
                         <button
                           className="post-report-btn"
                           onClick={() => handleOpenReport(post.id)}
@@ -898,6 +1074,17 @@ const Community = () => {
                           title="Report post"
                         >
                           <Flag size={18} />
+                        </button>
+                      )}
+                      {isAdmin && (
+                        <button
+                          className="post-report-btn"
+                          onClick={() => setBlockPostTarget(blockPostTarget?.id === post.id ? null : { id: post.id, reason: '' })}
+                          aria-label="Block post"
+                          title="Block post (admin)"
+                          style={{ color: '#ef4444' }}
+                        >
+                          <Shield size={18} />
                         </button>
                       )}
                     </div>
@@ -945,6 +1132,33 @@ const Community = () => {
                   <div className="post-stats">
                     <span>{post.views || 0} views</span>
                   </div>
+
+                  {/* Admin inline block post */}
+                  {isAdmin && blockPostTarget?.id === post.id && (
+                    <div className="ad-inline-action" style={{ margin: '8px 0', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <input
+                        className="ad-input"
+                        placeholder="Reason for blocking…"
+                        value={blockPostTarget.reason}
+                        onChange={e => setBlockPostTarget(x => ({ ...x, reason: e.target.value }))}
+                        style={{ flex: 1, minWidth: '180px' }}
+                      />
+                      <button
+                        className="ad-btn ad-btn--danger ad-btn--sm"
+                        onClick={() => handleAdminBlockPost(post.id, blockPostTarget.reason)}
+                        disabled={!blockPostTarget.reason.trim()}
+                      >
+                        Confirm Block
+                      </button>
+                      <button
+                        className="ad-btn ad-btn--ghost ad-btn--sm"
+                        onClick={() => setBlockPostTarget(null)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+
                   <div className="post-actions">
                     <button
                       onClick={() => handleLike(post.id, post.likedByUser)}
@@ -984,7 +1198,7 @@ const Community = () => {
                           {postComments[post.id]?.map(comment => (
                             <div key={comment.id} className="comment">
                               <img
-                                src={comment.userProfileImage || '/default-avatar.png'}
+                                src={comment.userProfileImage || defaultAvatar}
                                 alt={comment.userName}
                               />
                               <div className="comment-content">
@@ -993,21 +1207,56 @@ const Community = () => {
                                     <strong>{comment.userName}</strong>
                                     <span className="comment-time">{formatDate(comment.date)}</span>
                                   </div>
-                                  {isMyComment(comment) && (
-                                    <button
-                                      onClick={() => handleDeleteComment(comment.id, post.id)}
-                                      disabled={deletingComment === comment.id}
-                                      className="comment-delete-btn"
-                                      aria-label="Delete comment"
-                                    >
-                                      {deletingComment === comment.id ? (
-                                        <Loader className="spinner" size={14} />
-                                      ) : (
-                                        <Trash2 size={14} />
-                                      )}
-                                    </button>
-                                  )}
+                                  <div style={{ display: 'flex', gap: '4px' }}>
+                                    {isMyComment(comment) && (
+                                      <button
+                                        onClick={() => handleDeleteComment(comment.id, post.id)}
+                                        disabled={deletingComment === comment.id}
+                                        className="comment-delete-btn"
+                                        aria-label="Delete comment"
+                                      >
+                                        {deletingComment === comment.id ? (
+                                          <Loader className="spinner" size={14} />
+                                        ) : (
+                                          <Trash2 size={14} />
+                                        )}
+                                      </button>
+                                    )}
+                                    {isAdmin && (
+                                      <button
+                                        onClick={() => setBlockCommentTarget(
+                                          blockCommentTarget?.id === comment.id ? null : { id: comment.id, postId: post.id, reason: '' }
+                                        )}
+                                        className="comment-delete-btn"
+                                        aria-label="Block comment"
+                                        title="Block comment (admin)"
+                                        style={{ color: '#ef4444' }}
+                                      >
+                                        <Shield size={14} />
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
+                                {isAdmin && blockCommentTarget?.id === comment.id && (
+                                  <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                                    <input
+                                      className="ad-input"
+                                      placeholder="Reason…"
+                                      value={blockCommentTarget.reason}
+                                      onChange={e => setBlockCommentTarget(x => ({ ...x, reason: e.target.value }))}
+                                      style={{ flex: 1, minWidth: '140px', fontSize: '13px', padding: '4px 8px' }}
+                                    />
+                                    <button
+                                      className="ad-btn ad-btn--danger ad-btn--sm"
+                                      onClick={() => handleAdminBlockComment(comment.id, post.id, blockCommentTarget.reason)}
+                                      disabled={!blockCommentTarget.reason.trim()}
+                                    >Block</button>
+                                    <button
+                                      className="ad-btn ad-btn--ghost ad-btn--sm"
+                                      onClick={() => setBlockCommentTarget(null)}
+                                    >Cancel</button>
+                                  </div>
+                                )}
                                 <p>{comment.comment}</p>
                               </div>
                             </div>

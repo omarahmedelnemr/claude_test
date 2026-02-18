@@ -1,114 +1,140 @@
-import { users, courses, communityPosts, blogArticles } from '../../data/mockData';
-import { Users, BookOpen, MessageSquare, FileText, TrendingUp } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  Users, BookOpen, MessageSquare, FileText, BarChart3,
+  Bell, AlertTriangle, CheckCircle,
+  Shield, ChevronRight, TrendingUp,
+} from 'lucide-react';
+import api from '../../services/api';
 import '../Student/StudentDashboard.css';
+import './AdminDashboard.css';
 
-const AdminDashboard = () => {
-  const totalUsers = users.length;
-  const totalCourses = courses.length;
-  const totalPosts = communityPosts.length;
-  const totalArticles = blogArticles.length;
+// ─── Shared helpers ─────────────────────────────────────────────────────────
+const Toast = ({ msg, onClose }) => {
+  useEffect(() => {
+    const t = setTimeout(onClose, 3500);
+    return () => clearTimeout(t);
+  }, [onClose]);
+  if (!msg) return null;
+  const isOk = msg.type === 'success';
+  return (
+    <div className={`ad-toast ${isOk ? 'ad-toast--ok' : 'ad-toast--err'}`}>
+      {isOk ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
+      <span>{msg.text}</span>
+      <button onClick={onClose}>✕</button>
+    </div>
+  );
+};
 
-  const studentCount = users.filter(u => u.role === 'student').length;
-  const teacherCount = users.filter(u => u.role === 'teacher').length;
-  const totalEnrollments = users
-    .filter(u => u.enrolledCourses)
-    .reduce((sum, u) => sum + u.enrolledCourses.length, 0);
+const StatCard = ({ icon, bg, value, label }) => (
+  <div className="stat-card">
+    <div className="stat-icon" style={{ backgroundColor: bg }}>{icon}</div>
+    <div className="stat-info">
+      <h3>{value ?? '—'}</h3>
+      <p>{label}</p>
+    </div>
+  </div>
+);
+
+// ─── Overview Tab ────────────────────────────────────────────────────────────
+const OverviewTab = () => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      api.get('/admin/students-number'),
+      api.get('/admin/teachers-number'),
+      api.get('/admin/articles-number'),
+      api.get('/admin/posts-number'),
+      api.get('/admin/course-status'),
+      api.get('/admin/supervisors-list'),
+    ]).then(([s, t, a, p, c, sv]) => {
+      setData({
+        students:    s.data?.number ?? 0,
+        teachers:    t.data?.number ?? 0,
+        articles:    a.data?.number ?? 0,
+        posts:       p.data?.number ?? 0,
+        courses:     c.data ?? { scheduled: 0, completed: 0, canceled: 0 },
+        supervisors: Array.isArray(sv.data) ? sv.data.length : 0,
+      });
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="ad-loading"><span className="ad-spinner" />Loading metrics…</div>;
+  if (!data)   return <div className="ad-error">Failed to load metrics.</div>;
+
+  const totalCourses = data.courses.scheduled + data.courses.completed + data.courses.canceled;
+  const courseRows = [
+    { label: 'Scheduled', value: data.courses.scheduled, color: '#2196f3', bg: '#e3f2fd' },
+    { label: 'Completed', value: data.courses.completed, color: '#4caf50', bg: '#e8f5e9' },
+    { label: 'Canceled',  value: data.courses.canceled,  color: '#f44336', bg: '#ffebee' },
+  ];
 
   return (
-    <div className="container">
-      <div className="dashboard-header">
-        <h1>Admin Dashboard</h1>
-        <p>Platform overview and management</p>
-      </div>
-
+    <div className="ad-section">
+      {/* Main stat cards */}
       <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon" style={{ backgroundColor: '#e3f2fd' }}>
-            <Users size={28} color="#2196f3" />
-          </div>
-          <div className="stat-info">
-            <h3>{totalUsers}</h3>
-            <p>Total Users</p>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon" style={{ backgroundColor: '#e8f5e9' }}>
-            <BookOpen size={28} color="#4caf50" />
-          </div>
-          <div className="stat-info">
-            <h3>{totalCourses}</h3>
-            <p>Total Courses</p>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon" style={{ backgroundColor: '#fff3e0' }}>
-            <TrendingUp size={28} color="#ff9800" />
-          </div>
-          <div className="stat-info">
-            <h3>{totalEnrollments}</h3>
-            <p>Total Enrollments</p>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon" style={{ backgroundColor: '#f3e5f5' }}>
-            <MessageSquare size={28} color="#9c27b0" />
-          </div>
-          <div className="stat-info">
-            <h3>{totalPosts + totalArticles}</h3>
-            <p>Posts & Articles</p>
-          </div>
-        </div>
+        <StatCard icon={<Users      size={26} color="#2196f3" />} bg="#e3f2fd" value={data.students}    label="Students" />
+        <StatCard icon={<BookOpen   size={26} color="#4caf50" />} bg="#e8f5e9" value={data.teachers}    label="Teachers" />
+        <StatCard icon={<FileText   size={26} color="#ff9800" />} bg="#fff3e0" value={data.articles}    label="Articles" />
+        <StatCard icon={<MessageSquare size={26} color="#9c27b0" />} bg="#f3e5f5" value={data.posts}    label="Community Posts" />
+        <StatCard icon={<Shield     size={26} color="#607d8b" />} bg="#eceff1" value={data.supervisors} label="Supervisors" />
+        <StatCard icon={<TrendingUp size={26} color="#e91e63" />} bg="#fce4ec" value={totalCourses}     label="Total Courses" />
       </div>
 
-      <div className="dashboard-section">
-        <h2>User Distribution</h2>
-        <div className="course-grid">
-          <div className="card">
-            <h3>Students</h3>
-            <p style={{ fontSize: '2.5em', color: 'var(--primary-color)', margin: '0.5em 0' }}>
-              {studentCount}
-            </p>
-            <p style={{ color: 'var(--text-light)' }}>
-              {((studentCount / totalUsers) * 100).toFixed(1)}% of total users
-            </p>
-          </div>
-          <div className="card">
-            <h3>Teachers</h3>
-            <p style={{ fontSize: '2.5em', color: 'var(--primary-color)', margin: '0.5em 0' }}>
-              {teacherCount}
-            </p>
-            <p style={{ color: 'var(--text-light)' }}>
-              {((teacherCount / totalUsers) * 100).toFixed(1)}% of total users
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="dashboard-section">
-        <h2>Recent Courses</h2>
-        <div className="course-grid">
-          {courses.slice(0, 3).map(course => {
-            const teacher = users.find(u => u.id === course.teacherId);
-            return (
-              <div key={course.id} className="card">
-                <h3>{course.title}</h3>
-                <p style={{ color: 'var(--text-light)', margin: '0.5em 0' }}>
-                  By {teacher?.name}
-                </p>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1em' }}>
-                  <span>{course.studentsEnrolled} students</span>
-                  <span>⭐ {course.rating}</span>
-                </div>
+      {/* Course status breakdown */}
+      <div className="ad-card">
+        <h3 className="ad-card__title"><BarChart3 size={18} /> Course Status Breakdown</h3>
+        <div className="ad-status-list">
+          {courseRows.map(r => (
+            <div key={r.label} className="ad-status-row">
+              <div className="ad-status-row__label">
+                <span className="ad-status-row__dot" style={{ background: r.color }} />
+                {r.label}
               </div>
-            );
-          })}
+              <div className="ad-status-row__bar-wrap">
+                <div
+                  className="ad-status-row__bar"
+                  style={{
+                    width: totalCourses ? `${(r.value / totalCourses) * 100}%` : '0%',
+                    background: r.color,
+                  }}
+                />
+              </div>
+              <span className="ad-status-row__count" style={{ color: r.color }}>{r.value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Quick actions */}
+      <div className="ad-card">
+        <h3 className="ad-card__title"><Bell size={18} /> Quick Actions</h3>
+        <div className="ad-quick-actions">
+          <Link to="/admin/send-notification" className="ad-action-card">
+            <Bell size={22} color="#1976d2" />
+            <div>
+              <p className="ad-action-card__title">Send Notification</p>
+              <p className="ad-action-card__desc">Push alert to selected users via Firebase</p>
+            </div>
+            <ChevronRight size={18} className="ad-action-card__arrow" />
+          </Link>
         </div>
       </div>
     </div>
   );
 };
+
+// ─── Main AdminDashboard ─────────────────────────────────────────────────────
+const AdminDashboard = () => (
+  <div className="container">
+    <div className="dashboard-header">
+      <h1>Admin Dashboard</h1>
+      <p>Platform overview and quick actions</p>
+    </div>
+    <OverviewTab />
+  </div>
+);
 
 export default AdminDashboard;

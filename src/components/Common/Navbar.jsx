@@ -15,7 +15,8 @@ import {
   Calendar,
   BarChart3,
   Mail,
-  Clock
+  Clock,
+  Bell,
 } from 'lucide-react';
 import './Navbar.css';
 
@@ -135,11 +136,17 @@ const Navbar = () => {
           </>
         )}
 
-        {currentUser?.role === 'admin' && (
-          <Link to="/admin" className="nav-link">
-            <Layout size={20} />
-            <span>Admin Panel</span>
-          </Link>
+        {(currentUser?.role === 'admin' || currentUser?.role === 'supervisor') && (
+          <>
+            <Link to="/" className="nav-link">
+              <Layout size={20} />
+              <span>Admin Panel</span>
+            </Link>
+            <Link to="/admin/send-notification" className="nav-link">
+              <Bell size={20} />
+              <span>Send Notification</span>
+            </Link>
+          </>
         )}
       </div>
 
@@ -147,16 +154,19 @@ const Navbar = () => {
         {currentUser ? (
           <>
             <Link to="/profile" className="user-profile">
-              <img 
-                src={currentUser.profileImage || currentUser.avatar || '/default-avatar.png'} 
-                alt={currentUser.name || 'User'} 
+              <img
+                src={currentUser.profileImage || currentUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name || 'U')}&background=6366f1&color=fff&size=80`}
+                alt={currentUser.name || 'User'}
                 onError={(e) => {
-                  e.target.src = '/default-avatar.png';
+                  e.target.onerror = null;
+                  e.target.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%236366f1'/%3E%3Ccircle cx='20' cy='15' r='7' fill='white'/%3E%3Cellipse cx='20' cy='33' rx='12' ry='9' fill='white'/%3E%3C/svg%3E`;
                 }}
               />
               <div className="user-info">
                 <span className="user-name">{currentUser.name}</span>
-                <span className="user-role">{currentUser.role}</span>
+                <span className="user-role">
+                  {currentUser.role === 'supervisor' ? 'admin' : currentUser.role}
+                </span>
               </div>
             </Link>
             <button onClick={handleLogout} className="logout-btn">
