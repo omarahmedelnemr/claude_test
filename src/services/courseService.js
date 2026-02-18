@@ -8,6 +8,15 @@ export const courseService = {
   // ==================== Student Side ====================
 
   /**
+   * Get all unique subjects (metadata)
+   * @returns {Promise} API response with subjects list
+   */
+  getCourseSubjects: async () => {
+    const response = await api.get('/courses/subjects');
+    return response.data;
+  },
+
+  /**
    * Get all available courses for students
    * @param {Object} params - Query parameters
    * @param {string} params.studentID - Student ID (optional)

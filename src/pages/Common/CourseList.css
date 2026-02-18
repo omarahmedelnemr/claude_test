@@ -61,6 +61,38 @@
   min-width: 150px;
 }
 
+/* Subject Filter - Button Picker Style */
+.subject-filter {
+  display: flex;
+  gap: 0.5em;
+  flex-wrap: wrap;
+  margin-bottom: 1.5em;
+}
+
+.subject-filter .filter-btn {
+  padding: 0.5em 1em;
+  border: 1px solid var(--border-color, #e0e0e0);
+  background: white;
+  color: var(--text-dark, #212121);
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.subject-filter .filter-btn:hover {
+  border-color: var(--primary-color, #1976d2);
+  color: var(--primary-color, #1976d2);
+  background-color: var(--secondary-color, #e3f2fd);
+}
+
+.subject-filter .filter-btn.active {
+  background-color: var(--primary-color, #1976d2);
+  color: white;
+  border-color: var(--primary-color, #1976d2);
+}
+
 .results-info {
   margin-bottom: 1.5em;
   color: var(--text-light);

@@ -186,90 +186,107 @@
     margin: 0 0 1em;
 }
 
-/* Accordion Day Cards */
-.dates-accordion {
+/* Day Picker */
+.day-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75em;
+    padding: 0.25em 0;
+    margin-bottom: 1.5em;
+}
+
+.day-card {
     display: flex;
     flex-direction: column;
-    gap: 0.75em;
+    align-items: center;
+    gap: 0.3em;
+    min-width: 88px;
+    flex: 0 0 auto;
+    padding: 0.9em 0.75em;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    box-shadow: none;
+}
+
+.day-card:hover {
+    border-color: var(--primary-color);
+    background: rgba(42, 143, 155, 0.04);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.day-card.selected {
+    border-color: var(--primary-color);
+    background: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(42, 143, 155, 0.35);
+}
+
+.day-card-name {
+    font-size: 0.72em;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    color: var(--text-light);
+    text-transform: uppercase;
+}
+
+.day-card.selected .day-card-name {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.day-card-date {
+    font-size: 0.78em;
+    font-weight: 600;
+    color: var(--text-dark);
+    text-align: center;
+    line-height: 1.25;
+}
+
+.day-card.selected .day-card-date {
+    color: white;
+}
+
+.day-card-slots {
+    font-size: 0.68em;
+    font-weight: 600;
+    color: var(--primary-color);
+    background: rgba(42, 143, 155, 0.1);
+    padding: 0.15em 0.55em;
+    border-radius: var(--radius-full);
+    margin-top: 0.1em;
+    white-space: nowrap;
+}
+
+.day-card.selected .day-card-slots {
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+}
+
+/* Selected Day Slots */
+.selected-day-slots {
     margin-bottom: 2em;
 }
 
-.accordion-item {
-    padding: 0;
-    overflow: hidden;
-    transition: box-shadow 0.2s ease;
-}
-
-.accordion-item.open {
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-}
-
-.accordion-header {
+.selected-day-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    padding: 1em 1.25em;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    box-shadow: none;
-    transition: background 0.15s ease;
-}
-
-.accordion-header:hover {
-    background: var(--background-light);
-    transform: none;
-    box-shadow: none;
-}
-
-.accordion-day-info {
-    display: flex;
-    align-items: center;
-    gap: 0.75em;
-    text-align: left;
-}
-
-.accordion-day-name {
-    font-weight: 700;
-    font-size: 1em;
-    color: var(--text-dark);
-}
-
-.accordion-date {
-    font-size: 0.85em;
-    color: var(--text-light);
-}
-
-.accordion-right {
-    display: flex;
-    align-items: center;
-    gap: 0.75em;
-}
-
-.accordion-slot-count {
-    font-size: 0.8em;
+    gap: 0.5em;
+    font-size: 0.95em;
     font-weight: 600;
-    padding: 0.2em 0.65em;
-    border-radius: var(--radius-full);
-    background: rgba(42, 143, 155, 0.1);
+    color: var(--text-medium);
+    margin-bottom: 1em;
+    padding: 0.65em 1em;
+    background: var(--background-light);
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--primary-color);
+}
+
+.selected-day-header svg {
     color: var(--primary-color);
-}
-
-.accordion-chevron {
-    color: var(--text-light);
-    transition: transform 0.25s ease;
-}
-
-.accordion-chevron.rotated {
-    transform: rotate(180deg);
-}
-
-.accordion-body {
-    padding: 0 1.25em 1.25em;
-    display: flex;
-    flex-direction: column;
-    gap: 1em;
+    flex-shrink: 0;
 }
 
 .time-range-section {
@@ -429,15 +446,14 @@
         grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
     }
 
-    .accordion-day-info {
-        flex-direction: column;
-        gap: 0.15em;
-        align-items: flex-start;
-    }
-
     .range-header {
         flex-direction: column;
         align-items: flex-start;
         gap: 0.4em;
+    }
+
+    .day-card {
+        min-width: 78px;
+        padding: 0.75em 0.6em;
     }
 }

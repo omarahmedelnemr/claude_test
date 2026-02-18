@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Star, Clock, DollarSign, ArrowLeft, Calendar, Check, ChevronDown } from 'lucide-react';
+import { Search, Star, Clock, DollarSign, ArrowLeft, Calendar, Check } from 'lucide-react';
 import appointmentService from '../../services/appointmentService';
 import './AppointmentBooking.css';
 
@@ -13,11 +13,11 @@ const AppointmentBooking = () => {
     const [loading, setLoading] = useState(true);
     const [loadingSlots, setLoadingSlots] = useState(false);
     const [selectedSlot, setSelectedSlot] = useState(null);
+    const [selectedDay, setSelectedDay] = useState(null);
     const [description, setDescription] = useState('');
     const [booking, setBooking] = useState(false);
     const [bookingSuccess, setBookingSuccess] = useState(false);
     const [error, setError] = useState('');
-    const [expandedDays, setExpandedDays] = useState({});
 
     // Group availableTimes by date so multiple ranges on the same day appear together
     const groupedByDate = useMemo(() => {
@@ -45,10 +45,6 @@ const AppointmentBooking = () => {
         }
         return Object.values(map);
     }, [availableTimes]);
-
-    const toggleDay = (dateKey) => {
-        setExpandedDays(prev => ({ ...prev, [dateKey]: !prev[dateKey] }));
-    };
 
     const [searchParams] = useSearchParams();
 
@@ -81,7 +77,7 @@ const AppointmentBooking = () => {
         try {
             const [profile, times] = await Promise.all([
                 appointmentService.getTeacherProfile(teacher.id),
-                appointmentService.getTeacherAvailableTimes(teacher.id, 4)
+                appointmentService.getTeacherAvailableTimes(teacher.id, 2)
             ]);
             setTeacherProfile(profile);
             // Fill in teacher data from profile if we only had an ID (e.g. from URL param)
@@ -90,10 +86,10 @@ const AppointmentBooking = () => {
             }
             const timesArr = Array.isArray(times) ? times : [];
             setAvailableTimes(timesArr);
-            // Auto-expand the first day
+            // Auto-select the first day
             if (timesArr.length > 0) {
                 const firstKey = timesArr[0].date || timesArr[0].fullDate;
-                setExpandedDays({ [firstKey]: true });
+                setSelectedDay(firstKey);
             }
         } catch (err) {
             console.error("Failed to load teacher details:", err);
@@ -143,6 +139,7 @@ const AppointmentBooking = () => {
         setTeacherProfile(null);
         setAvailableTimes([]);
         setSelectedSlot(null);
+        setSelectedDay(null);
         setBookingSuccess(false);
         setError('');
         // If we came from URL param, load the teachers list now
@@ -200,58 +197,67 @@ const AppointmentBooking = () => {
                         <p>No available time slots for this teacher</p>
                     </div>
                 ) : (
-                    <div className="dates-accordion">
-                        {groupedByDate.map((group) => {
-                            const key = group.date || group.fullDate;
-                            const isOpen = !!expandedDays[key];
-                            return (
-                                <div key={key} className={`accordion-item card ${isOpen ? 'open' : ''}`}>
+                    <>
+                        {/* Step 1 — Pick a Day */}
+                        <div className="day-picker">
+                            {groupedByDate.map((group) => {
+                                const key = group.date || group.fullDate;
+                                const isSelected = selectedDay === key;
+                                return (
                                     <button
-                                        className="accordion-header"
-                                        onClick={() => toggleDay(key)}
+                                        key={key}
+                                        className={`day-card ${isSelected ? 'selected' : ''}`}
+                                        onClick={() => { setSelectedDay(key); setSelectedSlot(null); }}
                                     >
-                                        <div className="accordion-day-info">
-                                            <span className="accordion-day-name">{group.dayName}</span>
-                                            <span className="accordion-date">{group.fullDate}</span>
-                                        </div>
-                                        <div className="accordion-right">
-                                            <span className="accordion-slot-count">
-                                                {group.totalSlots} slot{group.totalSlots !== 1 ? 's' : ''}
-                                            </span>
-                                            <ChevronDown size={18} className={`accordion-chevron ${isOpen ? 'rotated' : ''}`} />
-                                        </div>
+                                        <span className="day-card-name">
+                                            {(group.dayName || '').substring(0, 3).toUpperCase()}
+                                        </span>
+                                        <span className="day-card-date">{group.fullDate}</span>
+                                        <span className="day-card-slots">
+                                            {group.totalSlots} slot{group.totalSlots !== 1 ? 's' : ''}
+                                        </span>
                                     </button>
-                                    {isOpen && (
-                                        <div className="accordion-body">
-                                            {group.ranges.map((range, ri) => (
-                                                <div key={ri} className="time-range-section">
-                                                    <div className="range-header">
-                                                        <span className="range-label">{range.rangeLabel}</span>
-                                                        <div className="range-meta">
-                                                            <span><Clock size={13} /> {range.sessionDuration} min</span>
-                                                            <span><DollarSign size={13} /> ${Number(range.price).toFixed(2)}</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="slots-grid">
-                                                        {range.timeSlots.map((slot, si) => (
-                                                            <button
-                                                                key={si}
-                                                                className={`slot-btn ${selectedSlot?.dateTime === slot.dateTime ? 'selected' : ''}`}
-                                                                onClick={() => setSelectedSlot(slot)}
-                                                            >
-                                                                <span className="slot-time">{slot.startTime}</span>
-                                                                <span className="slot-ampm">{slot.ampm}</span>
-                                                            </button>
-                                                        ))}
-                                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Step 2 — Pick a Time Slot */}
+                        {selectedDay && (() => {
+                            const group = groupedByDate.find(g => (g.date || g.fullDate) === selectedDay);
+                            if (!group) return null;
+                            return (
+                                <div className="selected-day-slots">
+                                    <div className="selected-day-header">
+                                        <Calendar size={16} />
+                                        <span>{group.dayName}, {group.fullDate}</span>
+                                    </div>
+                                    {group.ranges.map((range, ri) => (
+                                        <div key={ri} className="time-range-section">
+                                            <div className="range-header">
+                                                <span className="range-label">{range.rangeLabel}</span>
+                                                <div className="range-meta">
+                                                    <span><Clock size={13} /> {range.sessionDuration} min</span>
+                                                    <span><DollarSign size={13} /> ${Number(range.price).toFixed(2)}</span>
                                                 </div>
-                                            ))}
+                                            </div>
+                                            <div className="slots-grid">
+                                                {range.timeSlots.map((slot, si) => (
+                                                    <button
+                                                        key={si}
+                                                        className={`slot-btn ${selectedSlot?.dateTime === slot.dateTime ? 'selected' : ''}`}
+                                                        onClick={() => setSelectedSlot(slot)}
+                                                    >
+                                                        <span className="slot-time">{slot.startTime}</span>
+                                                        <span className="slot-ampm">{slot.ampm}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
-                                    )}
+                                    ))}
                                 </div>
                             );
-                        })}
-                    </div>
+                        })()}
+                    </>
                 )}
 
                 {/* Booking Confirmation */}

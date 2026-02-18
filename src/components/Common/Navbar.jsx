@@ -99,10 +99,6 @@ const Navbar = () => {
               <BookMarked size={20} />
               <span>My Learning</span>
             </Link>
-            <Link to="/appointments/book" className="nav-link">
-              <Calendar size={20} />
-              <span>Book Appointment</span>
-            </Link>
             <Link to="/appointments" className="nav-link">
               <Calendar size={20} />
               <span>Appointments</span>

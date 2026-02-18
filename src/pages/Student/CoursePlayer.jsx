@@ -27,6 +27,7 @@ const CoursePlayer = () => {
   const [selectedContent, setSelectedContent] = useState(null);
   const [contentItems, setContentItems] = useState({}); // lectureID -> content array
   const [formQuestions, setFormQuestions] = useState({}); // contentID -> questions array
+  const [formQuestionsLoaded, setFormQuestionsLoaded] = useState({}); // contentID -> boolean (to track if questions have been fetched)
   const [quizAnswers, setQuizAnswers] = useState({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [quizScore, setQuizScore] = useState(null);
@@ -727,7 +728,7 @@ const CoursePlayer = () => {
     }
 
     // If it's a form, fetch questions (always fetch, even if submitted, to show answers)
-    if (content.contentType === 'form' && !formQuestions[content.id]) {
+    if (content.contentType === 'form' && !formQuestionsLoaded[content.id]) {
       try {
         const questionsData = await courseService.getFormQuestions(content.id, currentUser?.id);
         
@@ -739,6 +740,11 @@ const CoursePlayer = () => {
         setFormQuestions(prev => ({
           ...prev,
           [content.id]: questionsArray
+        }));
+        
+        setFormQuestionsLoaded(prev => ({
+          ...prev,
+          [content.id]: true
         }));
         
         // Load submitted answers from the response or from progress data
@@ -1135,10 +1141,25 @@ const CoursePlayer = () => {
           }
         }
 
-        if (questions.length === 0 && !isSubmitted) {
+        // Check if questions are still loading
+        if (!formQuestionsLoaded[selectedContent.id]) {
           return (
             <div className="quiz-container">
               <p>Loading questions...</p>
+            </div>
+          );
+        }
+        
+        // Check if questions have been loaded but are empty
+        if (questions.length === 0 && !isSubmitted) {
+          return (
+            <div className="quiz-container">
+              <div className="quiz-header">
+                <h3>{selectedContent.title}</h3>
+              </div>
+              <div style={{ textAlign: 'center', padding: '3em 2em', color: 'var(--text-light)' }}>
+                <p>No questions available for this form.</p>
+              </div>
             </div>
           );
         }

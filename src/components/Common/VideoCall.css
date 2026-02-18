@@ -43,11 +43,11 @@
 }
 
 .video-player {
-    background: #1a1a1a;
+    background: #ffffff;
     border-radius: 12px;
     overflow: hidden;
     flex: 1;
-    max-width: 640px;
+    /* max-width: 640px; */
     aspect-ratio: 16/9;
     position: relative;
 }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import courseService from '../../services/courseService';
-import { Search, Filter, Loader2 } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 import './CourseList.css';
 
 const CourseList = () => {
@@ -14,11 +14,30 @@ const CourseList = () => {
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [subjects, setSubjects] = useState(['all']);
   const [failedImages, setFailedImages] = useState(new Set());
+  const [loadingSubjects, setLoadingSubjects] = useState(true);
 
-  // Fetch courses on mount
+  // Fetch subjects on mount (metadata)
+  useEffect(() => {
+    fetchSubjects();
+  }, []);
+
+  // Fetch courses on mount and when filters change
   useEffect(() => {
     fetchCourses();
-  }, []);
+  }, [searchTerm, selectedSubject]);
+
+  const fetchSubjects = async () => {
+    try {
+      setLoadingSubjects(true);
+      const response = await courseService.getCourseSubjects();
+      const subjectsList = response?.subjects || [];
+      setSubjects(['all', ...subjectsList]);
+    } catch (err) {
+      console.error('Error fetching subjects:', err);
+    } finally {
+      setLoadingSubjects(false);
+    }
+  };
 
   const fetchCourses = async () => {
     try {
@@ -36,12 +55,10 @@ const CourseList = () => {
       const response = await courseService.getAvailableCourses(params);
       
       // Handle different response formats
-      const coursesData = Array.isArray(response) ? response : response.courses || response.data || [];
+      const coursesData = Array.isArray(response) 
+        ? response 
+        : response.data || response.courses || [];
       setCourses(coursesData);
-      
-      // Extract unique subjects
-      const uniqueSubjects = ['all', ...new Set(coursesData.map(c => c.subject).filter(Boolean))];
-      setSubjects(uniqueSubjects);
     } catch (err) {
       console.error('Error fetching courses:', err);
       setError(err.message || 'Failed to load courses. Please try again.');
@@ -49,25 +66,6 @@ const CourseList = () => {
       setLoading(false);
     }
   };
-
-  // Refetch when search term or subject changes
-  useEffect(() => {
-    if (!loading) {
-      const timeoutId = setTimeout(() => {
-        fetchCourses();
-      }, 500); // Debounce search
-      return () => clearTimeout(timeoutId);
-    }
-  }, [searchTerm, selectedSubject]);
-
-  // Client-side filtering for immediate feedback
-  const filteredCourses = courses.filter(course => {
-    const matchesSearch = !searchTerm || 
-      course.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSubject = selectedSubject === 'all' || course.subject === selectedSubject;
-    return matchesSearch && matchesSubject;
-  });
 
   if (loading && courses.length === 0) {
     return (
@@ -106,33 +104,40 @@ const CourseList = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-
-        <div className="filter-group">
-          <Filter size={20} />
-          <select
-            value={selectedSubject}
-            onChange={(e) => setSelectedSubject(e.target.value)}
-          >
-            {subjects.map(subject => (
-              <option key={subject} value={subject}>
-                {subject === 'all' ? 'All Subjects' : subject}
-              </option>
-            ))}
-          </select>
-        </div>
       </div>
+
+      {/* Subject Filter - Button Picker Style */}
+      {subjects.length > 1 && (
+        <div className="subject-filter">
+          <button
+            className={`filter-btn ${selectedSubject === 'all' ? 'active' : ''}`}
+            onClick={() => setSelectedSubject('all')}
+          >
+            All Subjects
+          </button>
+          {subjects.filter(s => s !== 'all').map(subject => (
+            <button
+              key={subject}
+              className={`filter-btn ${selectedSubject === subject ? 'active' : ''}`}
+              onClick={() => setSelectedSubject(subject)}
+            >
+              {subject}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="results-info">
-        <p>Showing {filteredCourses.length} course{filteredCourses.length !== 1 ? 's' : ''}</p>
+        <p>Showing {courses.length} course{courses.length !== 1 ? 's' : ''}</p>
       </div>
 
-      {filteredCourses.length === 0 && !loading ? (
+      {courses.length === 0 && !loading ? (
         <div style={{ textAlign: 'center', padding: '3em', color: '#666' }}>
           <p>No courses found. Try adjusting your search or filters.</p>
         </div>
       ) : (
         <div className="course-grid">
-          {filteredCourses.map(course => {
+          {courses.map(course => {
             const courseId = course.id || course.courseID;
             const hasThumbnail = course.thumbnailUrl || course.thumbnail;
             const imageFailed = failedImages.has(courseId);
