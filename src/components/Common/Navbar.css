@@ -16,6 +16,9 @@
   padding: 2rem 1.75rem;
   border-bottom: 1px solid var(--border-light);
   background: linear-gradient(135deg, rgba(42, 143, 155, 0.05) 0%, rgba(60, 169, 183, 0.05) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .sidebar-brand {
@@ -36,6 +39,24 @@
 
 .sidebar-brand svg {
   filter: drop-shadow(0 2px 4px rgba(42, 143, 155, 0.3));
+}
+
+.logo {
+  display: block;
+  object-fit: contain;
+  max-width: 100%;
+  height: auto;
+}
+
+.logo-vertical {
+  max-height: 80px;
+  width: auto;
+}
+
+.logo-horizontal {
+  display: none;
+  max-height: 50px;
+  width: auto;
 }
 
 .sidebar-menu {
@@ -239,6 +260,7 @@
 
   .sidebar-header {
     padding: 1.5rem 0.75rem;
+    justify-content: center;
   }
 
   .sidebar-brand span {
@@ -248,6 +270,15 @@
   .sidebar-brand {
     justify-content: center;
     font-size: 1.25rem;
+  }
+
+  .logo-vertical {
+    display: none;
+  }
+
+  .logo-horizontal {
+    display: block;
+    max-height: 40px;
   }
 
   .sidebar-menu {

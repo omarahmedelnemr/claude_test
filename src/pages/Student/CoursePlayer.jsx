@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import courseService from '../../services/courseService';
+import certificateService from '../../services/certificateService';
 import {
   PlayCircle,
   FileText,
@@ -11,7 +12,9 @@ import {
   Download,
   Loader2,
   ArrowLeft,
-  Lock
+  Lock,
+  Award,
+  ExternalLink
 } from 'lucide-react';
 import './CoursePlayer.css';
 
@@ -42,6 +45,8 @@ const CoursePlayer = () => {
   const [lastUpdateTime, setLastUpdateTime] = useState({}); // contentID -> last update timestamp
   const [expandedSectionId, setExpandedSectionId] = useState(null); // Section ID or 'unsectioned' for lectures without section
   const [expandedLectureId, setExpandedLectureId] = useState(null); // Only one lecture expanded at a time
+  const [courseCertificate, setCourseCertificate] = useState(null); // Certificate for this course
+  const [loadingCertificate, setLoadingCertificate] = useState(false);
 
   useEffect(() => {
     if (courseID && currentUser?.id) {
@@ -119,7 +124,7 @@ const CoursePlayer = () => {
       }
       setSections(sectionsArray);
 
-      // Fetch student progress
+          // Fetch student progress
       if (currentUser.role === 'student') {
         try {
           const progressResponse = await courseService.getCourseProgress(courseID, currentUser.id);
@@ -135,6 +140,22 @@ const CoursePlayer = () => {
           
           // No longer tracking individual content progress percentages
           setContentProgress({});
+          
+          // If course is completed (100%), check for certificate
+          if (overallProgress === 100) {
+            setLoadingCertificate(true);
+            try {
+              const certResponse = await certificateService.getCourseCertificate(currentUser.id, courseID);
+              if (certResponse?.data) {
+                setCourseCertificate(certResponse.data);
+              }
+            } catch (certErr) {
+              // Certificate might not exist yet, that's okay
+              console.log('Certificate not found or not generated yet');
+            } finally {
+              setLoadingCertificate(false);
+            }
+          }
         } catch (err) {
           console.error('Error fetching progress:', err);
         }
@@ -1428,6 +1449,47 @@ const CoursePlayer = () => {
               </div>
               <span>{progress?.overallProgress || 0}% Complete</span>
             </div>
+            {progress?.overallProgress === 100 && (
+              <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#f0f9ff', borderRadius: '6px', border: '1px solid #bae6fd' }}>
+                {loadingCertificate ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#0369a1' }}>
+                    <Loader2 size={16} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
+                    <span style={{ fontSize: '0.875rem' }}>Checking certificate...</span>
+                  </div>
+                ) : courseCertificate ? (
+                  <button
+                    onClick={() => window.open(courseCertificate.certificateUrl, '_blank')}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      padding: '0.5rem',
+                      background: '#2a8f9b',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#237a85'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = '#2a8f9b'}
+                  >
+                    <Award size={16} />
+                    <span>View Certificate</span>
+                    <ExternalLink size={14} />
+                  </button>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#0369a1', fontSize: '0.875rem' }}>
+                    <Award size={16} />
+                    <span>Certificate will be available soon</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="lectures-sidebar">

@@ -4,8 +4,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import profileService from '../../services/profileService';
 import parentService from '../../services/parentService';
 import courseService from '../../services/courseService';
+import certificateService from '../../services/certificateService';
 import FileUpload from '../../components/Common/FileUpload';
-import { Edit2, Save, X, Loader2, BookMarked, Plus, Trash2, GraduationCap, Briefcase, Award, Users, ArrowLeft, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Edit2, Save, X, Loader2, BookMarked, Plus, Trash2, GraduationCap, Briefcase, Award, Users, ArrowLeft, CheckCircle, AlertTriangle, Download, ExternalLink } from 'lucide-react';
 import './Profile.css';
 import '../Admin/AdminDashboard.css';
 
@@ -41,6 +42,10 @@ const Profile = () => {
   const [newEducationTitle, setNewEducationTitle] = useState('');
   const [newExperienceTitle, setNewExperienceTitle] = useState('');
   const [newCertificateTitle, setNewCertificateTitle] = useState('');
+  
+  // Student course certificates
+  const [courseCertificates, setCourseCertificates] = useState([]);
+  const [loadingCertificates, setLoadingCertificates] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -90,6 +95,19 @@ const Profile = () => {
             ? enrollmentsResponse 
             : enrollmentsResponse?.data || enrollmentsResponse?.enrollments || [];
           setEnrolledCoursesCount(enrollments.length || 0);
+          
+          // Fetch course certificates
+          setLoadingCertificates(true);
+          try {
+            const certsResponse = await certificateService.getUserCertificates(studentIDToUse);
+            const certs = certsResponse?.data || certsResponse || [];
+            setCourseCertificates(certs);
+          } catch (certErr) {
+            console.error('Error fetching certificates:', certErr);
+            setCourseCertificates([]);
+          } finally {
+            setLoadingCertificates(false);
+          }
         } catch (err) {
           console.error('Error fetching enrollments:', err);
           setEnrolledCoursesCount(0);
@@ -949,6 +967,77 @@ const Profile = () => {
                 )}
               </div>
             </>
+          )}
+
+          {/* Student Course Certificates Section */}
+          {(currentUser?.role === 'student' || isViewingStudent) && (
+            <div className="card">
+              <div className="card-header">
+                <h3><Award size={20} /> Course Certificates</h3>
+              </div>
+              {loadingCertificates ? (
+                <div style={{ padding: '2rem', textAlign: 'center' }}>
+                  <Loader2 size={24} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
+                  <p style={{ marginTop: '0.5rem', color: '#999' }}>Loading certificates...</p>
+                </div>
+              ) : courseCertificates.length === 0 ? (
+                <p className="form-value" style={{ color: '#999', padding: '1rem' }}>
+                  No course certificates yet. Complete courses to earn certificates!
+                </p>
+              ) : (
+                <div className="certificates-grid" style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
+                  gap: '1rem',
+                  padding: '1rem'
+                }}>
+                  {courseCertificates.map((cert) => (
+                    <div 
+                      key={cert.id} 
+                      className="certificate-card"
+                      style={{
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '8px',
+                        padding: '1rem',
+                        background: '#fff',
+                        transition: 'box-shadow 0.2s',
+                        cursor: 'pointer'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'}
+                      onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}
+                      onClick={() => window.open(cert.certificateUrl, '_blank')}
+                    >
+                      {cert.courseThumbnail && (
+                        <img 
+                          src={cert.courseThumbnail} 
+                          alt={cert.courseTitle}
+                          style={{
+                            width: '100%',
+                            height: '120px',
+                            objectFit: 'cover',
+                            borderRadius: '4px',
+                            marginBottom: '0.75rem'
+                          }}
+                        />
+                      )}
+                      <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem', fontWeight: 600 }}>
+                        {cert.courseTitle}
+                      </h4>
+                      <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.875rem', color: '#666' }}>
+                        {cert.teacherName}
+                      </p>
+                      <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.75rem', color: '#999' }}>
+                        Issued: {new Date(cert.issuedAt).toLocaleDateString()}
+                      </p>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', color: '#2a8f9b' }}>
+                        <ExternalLink size={16} />
+                        <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>View Certificate</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

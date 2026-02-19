@@ -32,8 +32,8 @@ const Navbar = () => {
     <nav className="sidebar">
       <div className="sidebar-header">
         <Link to="/" className="sidebar-brand">
-          <GraduationCap size={32} />
-          <span>EduPlatform</span>
+          <img src="/Logo Vertical.png" alt="Ruwaq Logo" className="logo logo-vertical" />
+          <img src="/Logo.png" alt="Ruwaq Logo" className="logo logo-horizontal" />
         </Link>
       </div>
 
