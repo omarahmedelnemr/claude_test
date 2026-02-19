@@ -24,6 +24,7 @@ import MyCourses from './pages/Teacher/MyCourses';
 import CourseEditor from './pages/Teacher/CourseEditor';
 import CourseContentManager from './pages/Teacher/CourseContentManager';
 import EnrolledCourses from './pages/Student/EnrolledCourses';
+import Checkout from './pages/Student/Checkout';
 
 import AdvancedAnalytics from './pages/Teacher/AdvancedAnalytics';
 import Messaging from './pages/Common/Messaging';
@@ -241,6 +242,15 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={['student']}>
               <EnrolledCourses />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="checkout/:id"
+          element={
+            <ProtectedRoute allowedRoles={['student']}>
+              <Checkout />
             </ProtectedRoute>
           }
         />

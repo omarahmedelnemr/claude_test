@@ -14,7 +14,6 @@ const CourseDetail = () => {
   const [lectures, setLectures] = useState([]);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [enrolling, setEnrolling] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -81,7 +80,7 @@ const CourseDetail = () => {
     }
   };
 
-  const handleEnroll = async () => {
+  const handleEnroll = () => {
     if (!currentUser) {
       navigate('/login');
       return;
@@ -92,19 +91,8 @@ const CourseDetail = () => {
       return;
     }
 
-    try {
-      setEnrolling(true);
-      // studentID is optional - backend will use session if not provided
-      await courseService.enrollInCourse(id, currentUser.id);
-      setIsEnrolled(true);
-      alert('Successfully enrolled in the course!');
-      navigate('/enrolled-courses');
-    } catch (err) {
-      alert(err.message || 'Failed to enroll in course');
-      console.error('Enrollment error:', err);
-    } finally {
-      setEnrolling(false);
-    }
+    // Navigate to checkout page
+    navigate(`/checkout/${id}`);
   };
 
   if (loading) {
@@ -324,9 +312,8 @@ const CourseDetail = () => {
                 <button 
                   onClick={handleEnroll} 
                   className="enroll-button"
-                  disabled={enrolling}
                 >
-                  {enrolling ? 'Enrolling...' : 'Enroll Now'}
+                  Enroll Now
                 </button>
               )}
 
