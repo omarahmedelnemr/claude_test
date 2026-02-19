@@ -49,6 +49,9 @@
   box-shadow: var(--card-shadow);
   transition: all 0.3s ease;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .blog-card-header {
@@ -122,6 +125,9 @@
 
 .blog-content {
   padding: 1.5em;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 .blog-tags {
@@ -156,6 +162,14 @@
   color: var(--text-light);
   line-height: 1.6;
   margin-bottom: 1.5em;
+  /* Fixed height for consistent card sizes */
+  height: 4.8em; /* Approximately 3 lines of text */
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  text-overflow: ellipsis;
 }
 
 .blog-meta {
@@ -228,5 +242,9 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 1em;
+  }
+
+  .blog-excerpt {
+    height: 4.5em; /* Slightly smaller on mobile */
   }
 }

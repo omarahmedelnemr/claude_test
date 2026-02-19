@@ -23,10 +23,18 @@
   }
 }
 
+@media (max-width: 900px) {
+  .main-content {
+    padding: 2rem 1.5rem;
+    margin-left: 75px;
+  }
+}
+
 @media (max-width: 768px) {
   .main-content {
     padding: 1.5rem 1rem;
-    margin-left: 75px;
+    margin-left: 0;
+    padding-top: 5rem; /* Add top padding for mobile menu button */
   }
 }
 

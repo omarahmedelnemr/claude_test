@@ -392,37 +392,101 @@
         flex-direction: column;
         align-items: center;
         text-align: center;
+        padding: 1.25em 1em;
+    }
+
+    .tp-hero-info {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .tp-hero-info h1 {
+        font-size: 1.2em;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    .tp-hero-title {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        white-space: normal;
     }
 
     .tp-hero-tags,
     .tp-hero-stats {
         justify-content: center;
+        flex-wrap: wrap;
     }
 
     .tp-hero-rating {
         justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .tp-rating-count {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
     }
 
     .tp-hero-actions {
         width: 100%;
+        align-self: stretch;
     }
 
     .tp-book-btn {
         width: 100%;
         justify-content: center;
+        white-space: normal;
+        word-wrap: break-word;
     }
 
     .tp-tabs {
         overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
     .tp-tab {
         padding: 0.75em 1em;
         font-size: 0.85em;
         white-space: nowrap;
+        flex-shrink: 0;
     }
 
     .tp-courses-grid {
         grid-template-columns: 1fr;
+    }
+
+    .tp-review-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5em;
+    }
+}
+
+@media (max-width: 480px) {
+    .tp-hero {
+        padding: 1em 0.75em;
+    }
+
+    .tp-hero-avatar {
+        width: 80px;
+        height: 80px;
+    }
+
+    .tp-hero-info h1 {
+        font-size: 1.1em;
+    }
+
+    .tp-hero-title {
+        font-size: 0.85em;
+    }
+
+    .tp-tab {
+        padding: 0.6em 0.75em;
+        font-size: 0.8em;
+    }
+
+    .tp-section {
+        padding: 1em 0.75em;
     }
 }

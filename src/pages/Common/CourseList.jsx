@@ -235,9 +235,9 @@ const CourseList = () => {
                 </Link>
               <div className="course-content">
                 <div className="course-meta">
-                  {course.subject && (
-                    <span className="category-badge">{course.subject}</span>
-                  )}
+                  <span className="category-badge">
+                    {course.subject || 'No Subject'}
+                  </span>
                   {course.status && course.status !== 'published' && (
                     <span className="level-badge">{course.status}</span>
                   )}

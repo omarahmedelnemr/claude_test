@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
@@ -17,6 +18,8 @@ import {
   Mail,
   Clock,
   Bell,
+  Menu,
+  X,
 } from 'lucide-react';
 import './Navbar.css';
 
@@ -24,6 +27,27 @@ const Navbar = () => {
   const { currentUser, logout } = useAuth();
   const { unreadCount, isConnected } = useNotifications();
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Close mobile menu when clicking outside or on a link
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 768) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
 
   const handleLogout = () => {
     logout();
@@ -31,64 +55,79 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="sidebar">
-      <div className="sidebar-header">
-        <Link to="/" className="sidebar-brand">
-          <img src="/Logo Vertical.png" alt="Ruwaq Logo" className="logo logo-vertical" />
-          <img src="/Logo.png" alt="Ruwaq Logo" className="logo logo-horizontal" />
-        </Link>
-      </div>
+    <>
+      {/* Mobile menu toggle button */}
+      <button 
+        className="mobile-menu-toggle"
+        onClick={toggleMobileMenu}
+        aria-label="Toggle menu"
+      >
+        {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
+      {/* Mobile overlay */}
+      {isMobileMenuOpen && (
+        <div className="mobile-menu-overlay" onClick={closeMobileMenu}></div>
+      )}
+
+      <nav className={`sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
+        <div className="sidebar-header">
+          <Link to="/" className="sidebar-brand" onClick={closeMobileMenu}>
+            <img src="/Logo Vertical.png" alt="Ruwaq Logo" className="logo logo-vertical" />
+            <img src="/Logo.png" alt="Ruwaq Logo" className="logo logo-horizontal" />
+          </Link>
+        </div>
 
       <div className="sidebar-menu">
-        <Link to="/" className="nav-link">
+        <Link to="/" className="nav-link" onClick={closeMobileMenu}>
           <Home size={20} />
           <span>Dashboard</span>
         </Link>
 
-        <Link to="/courses" className="nav-link">
+        <Link to="/courses" className="nav-link" onClick={closeMobileMenu}>
           <BookOpen size={20} />
           <span>Courses</span>
         </Link>
 
-        <Link to="/teachers" className="nav-link">
+        <Link to="/teachers" className="nav-link" onClick={closeMobileMenu}>
           <Users size={20} />
           <span>Teachers</span>
         </Link>
 
-        <Link to="/community" className="nav-link">
+        <Link to="/community" className="nav-link" onClick={closeMobileMenu}>
           <MessageSquare size={20} />
           <span>Community</span>
         </Link>
 
-        <Link to="/blog" className="nav-link">
+        <Link to="/blog" className="nav-link" onClick={closeMobileMenu}>
           <FileText size={20} />
           <span>Blog</span>
         </Link>
 
-        <Link to="/qa" className="nav-link">
+        <Link to="/qa" className="nav-link" onClick={closeMobileMenu}>
           <HelpCircle size={20} />
           <span>Q&A</span>
         </Link>
 
         {currentUser?.role === 'teacher' && (
           <>
-            <Link to="/my-courses" className="nav-link">
+            <Link to="/my-courses" className="nav-link" onClick={closeMobileMenu}>
               <BookMarked size={20} />
               <span>My Courses</span>
             </Link>
-            <Link to="/appointments" className="nav-link">
+            <Link to="/appointments" className="nav-link" onClick={closeMobileMenu}>
               <Calendar size={20} />
               <span>Appointments</span>
             </Link>
-            <Link to="/appointments/availability" className="nav-link">
+            <Link to="/appointments/availability" className="nav-link" onClick={closeMobileMenu}>
               <Clock size={20} />
               <span>Availability</span>
             </Link>
-            <Link to="/analytics" className="nav-link">
+            <Link to="/analytics" className="nav-link" onClick={closeMobileMenu}>
               <BarChart3 size={20} />
               <span>Analytics</span>
             </Link>
-            <Link to="/messages" className="nav-link">
+            <Link to="/messages" className="nav-link" onClick={closeMobileMenu}>
               <Mail size={20} />
               <span>Messages</span>
             </Link>
@@ -97,15 +136,15 @@ const Navbar = () => {
 
         {currentUser?.role === 'student' && (
           <>
-            <Link to="/enrolled-courses" className="nav-link">
+            <Link to="/enrolled-courses" className="nav-link" onClick={closeMobileMenu}>
               <BookMarked size={20} />
               <span>My Learning</span>
             </Link>
-            <Link to="/appointments" className="nav-link">
+            <Link to="/appointments" className="nav-link" onClick={closeMobileMenu}>
               <Calendar size={20} />
               <span>Appointments</span>
             </Link>
-            <Link to="/messages" className="nav-link">
+            <Link to="/messages" className="nav-link" onClick={closeMobileMenu}>
               <Mail size={20} />
               <span>Messages</span>
             </Link>
@@ -114,19 +153,19 @@ const Navbar = () => {
 
         {currentUser?.role === 'parent' && (
           <>
-            <Link to="/connected-students" className="nav-link">
+            <Link to="/connected-students" className="nav-link" onClick={closeMobileMenu}>
               <Users size={20} />
               <span>My Students</span>
             </Link>
-            <Link to="/pending-invitations" className="nav-link">
+            <Link to="/pending-invitations" className="nav-link" onClick={closeMobileMenu}>
               <Mail size={20} />
               <span>Invitations</span>
             </Link>
-            <Link to="/appointments" className="nav-link">
+            <Link to="/appointments" className="nav-link" onClick={closeMobileMenu}>
               <Calendar size={20} />
               <span>Appointments</span>
             </Link>
-            <Link to="/messages" className="nav-link">
+            <Link to="/messages" className="nav-link" onClick={closeMobileMenu}>
               <MessageSquare size={20} />
               <span>Messages</span>
             </Link>
@@ -135,7 +174,7 @@ const Navbar = () => {
 
         {/* Notifications for all users */}
         {currentUser && (
-          <Link to="/notifications" className="nav-link" style={{ position: 'relative' }}>
+          <Link to="/notifications" className="nav-link" style={{ position: 'relative' }} onClick={closeMobileMenu}>
             <Bell size={20} />
             <span>Notifications</span>
             {unreadCount > 0 && (
@@ -173,7 +212,7 @@ const Navbar = () => {
 
         {(currentUser?.role === 'admin' || currentUser?.role === 'supervisor') && (
           <>
-            <Link to="/admin/send-notification" className="nav-link">
+            <Link to="/admin/send-notification" className="nav-link" onClick={closeMobileMenu}>
               <Bell size={20} />
               <span>Send Notification</span>
             </Link>
@@ -184,7 +223,7 @@ const Navbar = () => {
       <div className="sidebar-footer">
         {currentUser ? (
           <>
-            <Link to="/profile" className="user-profile">
+            <Link to="/profile" className="user-profile" onClick={closeMobileMenu}>
               <img
                 src={currentUser.profileImage || currentUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name || 'U')}&background=6366f1&color=fff&size=80`}
                 alt={currentUser.name || 'User'}
@@ -200,19 +239,20 @@ const Navbar = () => {
                 </span>
               </div>
             </Link>
-            <button onClick={handleLogout} className="logout-btn">
+            <button onClick={() => { handleLogout(); closeMobileMenu(); }} className="logout-btn">
               <LogOut size={20} />
               <span>Logout</span>
             </button>
           </>
         ) : (
-          <Link to="/login" className="login-btn">
+          <Link to="/login" className="login-btn" onClick={closeMobileMenu}>
             <User size={20} />
             <span>Login</span>
           </Link>
         )}
       </div>
     </nav>
+    </>
   );
 };
 

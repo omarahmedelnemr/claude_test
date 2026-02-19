@@ -226,7 +226,7 @@ const TeacherList = () => {
                                         <User size={15} />
                                         View Profile
                                     </button>
-                                    {!isAdmin && (
+                                    {!isAdmin && currentUser?.role !== 'teacher' && (
                                         <button className="tl-book-btn" onClick={() => handleBookTeacher(teacher.id)}>
                                             <Calendar size={15} />
                                             Book

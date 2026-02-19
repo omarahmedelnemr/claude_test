@@ -14,7 +14,9 @@ import {
   ArrowLeft,
   Lock,
   Award,
-  ExternalLink
+  ExternalLink,
+  Menu,
+  X
 } from 'lucide-react';
 import './CoursePlayer.css';
 
@@ -47,6 +49,7 @@ const CoursePlayer = () => {
   const [expandedLectureId, setExpandedLectureId] = useState(null); // Only one lecture expanded at a time
   const [courseCertificate, setCourseCertificate] = useState(null); // Certificate for this course
   const [loadingCertificate, setLoadingCertificate] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false); // Toggle sidebar on small screens
 
   useEffect(() => {
     if (courseID && currentUser?.id) {
@@ -720,6 +723,11 @@ const CoursePlayer = () => {
     setSelectedLecture(lecture);
     setSelectedContent(content);
     setQuizAnswers({});
+    
+    // Close sidebar on small screens when content is selected
+    if (window.innerWidth <= 1024) {
+      setSidebarOpen(false);
+    }
     
     // Update URL with content
     const newParams = new URLSearchParams(searchParams);
@@ -1428,7 +1436,38 @@ const CoursePlayer = () => {
   return (
     <div className="course-player-page">
       <div className="player-container">
-        <div className="player-sidebar">
+        {/* Toggle button for small screens */}
+        <button 
+          className="sidebar-toggle-btn"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          aria-label="Toggle course content"
+        >
+          {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+          <span>Course Content</span>
+        </button>
+
+        <div className={`player-sidebar ${sidebarOpen ? 'open' : ''}`}>
+          {/* Top buttons bar - visible on small screens when sidebar is open */}
+          <div className="sidebar-top-buttons">
+            <button 
+              onClick={() => navigate('/')} 
+              className="back-button-top"
+              title="Back to Dashboard"
+            >
+              <ArrowLeft size={20} />
+              <span>Back to Dashboard</span>
+            </button>
+            <button 
+              className="close-sidebar-btn-top"
+              onClick={() => setSidebarOpen(false)}
+              aria-label="Close sidebar"
+            >
+              <X size={20} />
+              <span>Close</span>
+            </button>
+          </div>
+
+          {/* Back button for big screens */}
           <button 
             onClick={() => navigate('/')} 
             className="back-button"
@@ -1437,7 +1476,7 @@ const CoursePlayer = () => {
             <ArrowLeft size={20} />
             <span>Back</span>
           </button>
-          
+
           <div className="course-info">
             <h2>{course.title}</h2>
             <div className="course-progress">
@@ -1493,7 +1532,9 @@ const CoursePlayer = () => {
           </div>
 
           <div className="lectures-sidebar">
-            <h3>Course Content</h3>
+            <div className="lectures-sidebar-header">
+              <h3>Course Content</h3>
+            </div>
             {sections.length === 0 ? (
               <p>No content available yet.</p>
             ) : (
@@ -1645,6 +1686,13 @@ const CoursePlayer = () => {
           <div className="content-viewer">{renderContentViewer()}</div>
         </div>
       </div>
+      {/* Overlay for small screens when sidebar is open */}
+      {sidebarOpen && (
+        <div 
+          className="sidebar-overlay"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
     </div>
   );
 };

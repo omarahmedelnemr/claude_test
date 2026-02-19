@@ -79,7 +79,7 @@
   font-size: 0.9375rem;
   transition: all var(--transition-base);
   border-radius: var(--radius-lg);
-  border-left: 3px solid transparent;
+  /* border-left: 3px solid transparent; */
   position: relative;
   overflow: hidden;
 }
@@ -252,10 +252,10 @@
   box-shadow: var(--shadow-xl);
 }
 
-/* Mobile styles */
-@media (max-width: 768px) {
+/* Collapse navbar at 900px */
+@media (max-width: 900px) {
   .sidebar {
-    width: 75px;
+    width: 100px;
   }
 
   .sidebar-header {
@@ -331,15 +331,227 @@
   }
 }
 
-@media (max-width: 480px) {
+/* Mobile menu toggle button */
+.mobile-menu-toggle {
+  display: none;
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 1001;
+  background: white;
+  color: var(--primary-color);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.75rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s ease;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: auto;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mobile-menu-toggle:hover {
+  background: var(--background-light);
+  transform: scale(1.05);
+}
+
+.mobile-menu-toggle:active {
+  transform: scale(0.95);
+}
+
+/* Mobile overlay */
+.mobile-menu-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .mobile-menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-menu-overlay {
+    display: block;
+  }
+
   .sidebar {
-    width: 65px;
+    width: 280px;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    box-shadow: var(--shadow-xl);
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  /* When sidebar is open on mobile, use normal left-aligned layout */
+  .sidebar.mobile-open .sidebar-header {
+    padding: 2rem 1.75rem;
+    justify-content: flex-start;
+  }
+
+  .sidebar.mobile-open .sidebar-brand {
+    justify-content: flex-start;
+    font-size: 1.5rem;
+  }
+
+  .sidebar.mobile-open .logo-vertical {
+    display: block;
+  }
+
+  .sidebar.mobile-open .logo-horizontal {
+    display: none;
+  }
+
+  .sidebar.mobile-open .sidebar-menu {
+    padding: 1.25rem 0.75rem;
+  }
+
+  .sidebar.mobile-open .nav-link {
+    padding: 0.875rem 1.25rem;
+    justify-content: flex-start;
+    flex-direction: row;
+    gap: 1rem;
+    font-size: 0.9375rem;
+  }
+
+  .sidebar.mobile-open .nav-link span {
+    font-size: 0.9375rem;
+    text-align: left;
+  }
+
+  .sidebar.mobile-open .nav-link:hover {
+    transform: translateX(4px);
+  }
+
+  .sidebar.mobile-open .sidebar-footer {
+    padding: 1.5rem 1rem;
+  }
+
+  .sidebar.mobile-open .user-profile {
+    flex-direction: row;
+    padding: 0.875rem 1rem;
+    text-align: left;
+    gap: 0.875rem;
+  }
+
+  .sidebar.mobile-open .user-profile img {
+    width: 44px;
+    height: 44px;
+  }
+
+  .sidebar.mobile-open .user-info {
+    display: flex;
+  }
+
+  .sidebar.mobile-open .logout-btn span {
+    display: inline;
+  }
+
+  .sidebar.mobile-open .logout-btn {
+    padding: 0.875rem 1rem;
+    justify-content: flex-start;
+  }
+
+  /* Default mobile styles when sidebar is closed (for collapsed state if needed) */
+  .sidebar-header {
+    padding: 1.5rem 0.75rem;
+    justify-content: center;
+  }
+
+  .sidebar-brand span {
+    display: none;
+  }
+
+  .sidebar-brand {
+    justify-content: center;
+    font-size: 1.25rem;
+  }
+
+  .logo-vertical {
+    display: none;
+  }
+
+  .logo-horizontal {
+    display: block;
+    max-height: 40px;
+  }
+
+  .sidebar-menu {
+    padding: 1rem 0.5rem;
+  }
+
+  .nav-link {
+    padding: 1rem 0.75rem;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0.375rem;
+    font-size: 0.7rem;
   }
 
   .nav-link span {
-    font-size: 0.625rem;
+    font-size: 0.7rem;
+    text-align: center;
   }
 
+  .nav-link:hover {
+    transform: none;
+  }
+
+  .sidebar-footer {
+    padding: 1rem 0.5rem;
+  }
+
+  .user-profile {
+    flex-direction: column;
+    padding: 0.625rem;
+    text-align: center;
+    gap: 0.5rem;
+  }
+
+  .user-profile img {
+    width: 36px;
+    height: 36px;
+  }
+
+  .user-info {
+    display: none;
+  }
+
+  .logout-btn span {
+    display: none;
+  }
+
+  .logout-btn {
+    padding: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
   .user-profile img {
     width: 32px;
     height: 32px;

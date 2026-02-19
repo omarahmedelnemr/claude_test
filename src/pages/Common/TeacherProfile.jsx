@@ -111,7 +111,7 @@ const TeacherProfile = () => {
                     </div>
                 </div>
                 <div className="tp-hero-actions">
-                    {!isAdmin && (
+                    {!isAdmin && currentUser?.role !== 'teacher' && (
                         <button className="tp-book-btn" onClick={() => navigate(`/appointments/book?teacherID=${id}`)}>
                             <Calendar size={16} /> Book Appointment
                         </button>

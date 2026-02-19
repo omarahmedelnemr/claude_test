@@ -22,32 +22,22 @@ const ReportedArticleRow = ({ report, onDecision }) => {
   };
 
   return (
-    <div style={{ padding: '12px', border: '1px solid #fee2e2', borderRadius: '8px', background: '#fff5f5', marginBottom: '8px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1 }}>
-          <p style={{ margin: '0 0 4px', fontWeight: 600, fontSize: '13px', color: '#374151' }}>
-            Article: <span style={{ color: '#6366f1' }}>{report.articleTitle || 'Unknown'}</span>
-            {report.articleAuthor && <span style={{ marginLeft: '6px', color: '#9ca3af', fontWeight: 400 }}>by {report.articleAuthor}</span>}
-          </p>
-          <p style={{ margin: 0, fontSize: '12px', color: '#9ca3af' }}>
-            Reported by <strong>{report.reporterName || 'Unknown'}</strong>
-            {report.reportType && <span> · {report.reportType}</span>}
-            {' · '}{report.reason}
-          </p>
-        </div>
+    <div style={{ padding: '0' }}>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
         <button
           className="ad-btn ad-btn--ghost ad-btn--sm"
           onClick={() => onDecision(report.reportID, false, report.articleID, '')}
           title="Dismiss report"
+          style={{ flex: '0 0 auto' }}
         >Dismiss</button>
       </div>
-      <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
         <input
           className="ad-input"
           placeholder="Reason to block article…"
           value={reason}
           onChange={e => setReason(e.target.value)}
-          style={{ flex: 1, minWidth: '180px', fontSize: '13px', padding: '4px 8px' }}
+          style={{ flex: 1, minWidth: '180px', fontSize: '13px', padding: '6px 10px' }}
         />
         <button
           className="ad-btn ad-btn--danger ad-btn--sm"
@@ -91,6 +81,13 @@ const BlogList = () => {
   const [reportedArticles, setReportedArticles] = useState([]);
   const [reportedOpen, setReportedOpen] = useState(false);
   const [reportedLoading, setReportedLoading] = useState(false);
+  const [reportedPage, setReportedPage] = useState(1);
+  const [reportedPagination, setReportedPagination] = useState({ 
+    total: 0, 
+    totalPages: 1, 
+    hasNextPage: false, 
+    hasPreviousPage: false 
+  });
   const [modToast, setModToast] = useState(null);
 
   // Fetch categories on mount
@@ -301,11 +298,25 @@ const BlogList = () => {
     }
   };
 
-  const fetchReportedArticles = async () => {
+  const fetchReportedArticles = async (page = 1) => {
     setReportedLoading(true);
     try {
-      const r = await api.get('/admin/moderation/reported-articles');
-      setReportedArticles(Array.isArray(r.data) ? r.data : []);
+      const r = await api.get('/admin/moderation/reported-articles', {
+        params: { loadBlock: page }
+      });
+      const reports = Array.isArray(r.data) ? r.data : [];
+      setReportedArticles(reports);
+      
+      // Calculate pagination (API returns 15 items per page)
+      // If we got 15 items, there might be more pages
+      const itemsPerPage = 15;
+      const hasNextPage = reports.length === itemsPerPage;
+      setReportedPagination({
+        total: reports.length,
+        totalPages: hasNextPage ? page + 1 : page, // Estimate: if we got full page, assume at least one more
+        hasNextPage: hasNextPage,
+        hasPreviousPage: page > 1
+      });
     } catch {
       showModToast('error', 'Failed to load reported articles.');
     } finally {
@@ -313,9 +324,23 @@ const BlogList = () => {
     }
   };
 
+  useEffect(() => {
+    if (reportedOpen) {
+      fetchReportedArticles(reportedPage);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reportedPage]);
+
   const handleToggleReported = () => {
-    if (!reportedOpen) fetchReportedArticles();
+    if (!reportedOpen) {
+      setReportedPage(1);
+      fetchReportedArticles(1);
+    }
     setReportedOpen(v => !v);
+  };
+
+  const handleReportedPageChange = (newPage) => {
+    setReportedPage(newPage);
   };
 
   const handleReportDecision = async (reportID, block, articleID, reason) => {
@@ -475,25 +500,114 @@ const BlogList = () => {
 
       {/* Reported Articles Panel */}
       {isAdmin && reportedOpen && (
-        <div className="card" style={{ marginBottom: '20px', border: '2px solid #ef4444' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}>
-              <Flag size={18} /> Reported Articles
-            </h3>
-            <button onClick={() => setReportedOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-              <X size={18} />
-            </button>
+        <div style={{ marginBottom: '2em' }}>
+          <div className="card" style={{ marginBottom: '20px', border: '2px solid #ef4444' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}>
+                <Flag size={18} /> Reported Articles
+              </h3>
+              <button onClick={() => setReportedOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
           </div>
-          {reportedLoading ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Loader2 size={20} className="spinner" /> Loading…
+
+          {/* Reported Articles List */}
+          {reportedLoading && reportedArticles.length === 0 ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}>
+              <Loader2 size={32} className="spinner" />
             </div>
           ) : reportedArticles.length === 0 ? (
-            <p style={{ color: '#6b7280', fontStyle: 'italic' }}>No unreviewed reports.</p>
+            <div className="empty-state">
+              <h3>No reported articles</h3>
+              <p>No unreviewed reports at this time.</p>
+            </div>
           ) : (
-            reportedArticles.map(r => (
-              <ReportedArticleRow key={r.reportID} report={r} onDecision={handleReportDecision} />
-            ))
+            <>
+              <div className="blog-grid">
+                {reportedArticles.map(report => {
+                  const articleId = report.articleID;
+                  return (
+                    <div key={report.reportID} className="blog-card" style={{ border: '2px solid #fee2e2' }}>
+                      <div className="blog-card-header">
+                        <Link to={`/blog/${articleId}`}>
+                          {report.articleCoverImage ? (
+                            <img
+                              src={report.articleCoverImage}
+                              alt={report.articleTitle}
+                              className="blog-image"
+                            />
+                          ) : (
+                            <div className="blog-image-placeholder">
+                              <span>No Image</span>
+                            </div>
+                          )}
+                        </Link>
+                      </div>
+
+                      <div className="blog-content">
+                        <div className="blog-tags">
+                          <span className="tag" style={{ background: '#fee2e2', color: '#ef4444' }}>
+                            Reported
+                          </span>
+                        </div>
+                        <Link to={`/blog/${articleId}`}>
+                          <h2>{report.articleTitle || 'Unknown Article'}</h2>
+                        </Link>
+                        <div className="blog-meta">
+                          <div className="author-info">
+                            <img src={defaultAvatar} alt={report.articleAuthor || 'Author'} />
+                            <div>
+                              <strong>{report.articleAuthor || 'Unknown Author'}</strong>
+                              <span className="date">
+                                <Calendar size={14} />
+                                {formatDate(report.articleDate)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ marginTop: '1em', padding: '0.75em', background: '#fff5f5', borderRadius: '6px', fontSize: '0.9em' }}>
+                          <p style={{ margin: '0 0 0.5em', color: '#6b7280' }}>
+                            <strong>Reported by:</strong> {report.reporterName || 'Unknown'}
+                          </p>
+                          {report.reportType && (
+                            <p style={{ margin: '0 0 0.5em', color: '#6b7280' }}>
+                              <strong>Type:</strong> {report.reportType}
+                            </p>
+                          )}
+                          <p style={{ margin: 0, color: '#6b7280' }}>
+                            <strong>Reason:</strong> {report.reason || 'No reason provided'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Read to Report Section */}
+                      <div style={{ borderTop: '1px solid #fee2e2', padding: '1em' }}>
+                        <ReportedArticleRow report={report} onDecision={handleReportDecision} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Pagination for Reported Articles */}
+              {!reportedLoading && (
+                <Pagination
+                  currentPage={reportedPage}
+                  totalPages={reportedPagination.totalPages}
+                  hasNextPage={reportedPagination.hasNextPage}
+                  hasPreviousPage={reportedPagination.hasPreviousPage}
+                  onPageChange={handleReportedPageChange}
+                />
+              )}
+
+              {/* Loading overlay when loading more */}
+              {reportedLoading && reportedArticles.length > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem', marginTop: '1rem' }}>
+                  <Loader2 size={24} className="spinner" />
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
