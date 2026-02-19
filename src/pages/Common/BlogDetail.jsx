@@ -135,7 +135,16 @@ const BlogDetail = () => {
       setLiked(previousLiked);
       setLikes(previousLikes);
       console.error('Error toggling like:', err);
-      alert(err.response?.data?.message || 'Failed to update like');
+      
+      // Extract error message - API interceptor puts it in err.message
+      // Also check err.response.data for direct string messages
+      const errorMessage = err.message || 
+                          (typeof err.response?.data === 'string' ? err.response.data : null) ||
+                          err.response?.data?.message || 
+                          err.response?.data?.error ||
+                          'Failed to update like';
+      
+      alert(errorMessage);
     }
   };
 
