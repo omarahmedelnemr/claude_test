@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotifications } from '../../contexts/NotificationContext';
 import {
   GraduationCap,
   BookOpen,
@@ -21,6 +22,7 @@ import './Navbar.css';
 
 const Navbar = () => {
   const { currentUser, logout } = useAuth();
+  const { unreadCount, isConnected } = useNotifications();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -129,6 +131,44 @@ const Navbar = () => {
               <span>Messages</span>
             </Link>
           </>
+        )}
+
+        {/* Notifications for all users */}
+        {currentUser && (
+          <Link to="/notifications" className="nav-link" style={{ position: 'relative' }}>
+            <Bell size={20} />
+            <span>Notifications</span>
+            {unreadCount > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: '8px',
+                right: '8px',
+                background: '#ef4444',
+                color: 'white',
+                borderRadius: '50%',
+                width: '18px',
+                height: '18px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.7em',
+                fontWeight: 'bold'
+              }}>
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+            {!isConnected && (
+              <span style={{
+                position: 'absolute',
+                top: '8px',
+                right: unreadCount > 0 ? '30px' : '8px',
+                width: '8px',
+                height: '8px',
+                background: '#9ca3af',
+                borderRadius: '50%'
+              }} title="Disconnected" />
+            )}
+          </Link>
         )}
 
         {(currentUser?.role === 'admin' || currentUser?.role === 'supervisor') && (

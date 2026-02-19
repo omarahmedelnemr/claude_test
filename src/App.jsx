@@ -20,6 +20,7 @@ import BlogDetail from './pages/Common/BlogDetail';
 import CreateArticle from './pages/Teacher/CreateArticle';
 import QASection from './pages/Common/QASection';
 import Profile from './pages/Common/Profile';
+import Notifications from './pages/Common/Notifications';
 import MyCourses from './pages/Teacher/MyCourses';
 import CourseEditor from './pages/Teacher/CourseEditor';
 import CourseContentManager from './pages/Teacher/CourseContentManager';
@@ -35,6 +36,7 @@ import ParentInvitation from './pages/Student/ParentInvitation';
 import PendingInvitations from './pages/Parent/PendingInvitations';
 import ConnectedStudents from './pages/Parent/ConnectedStudents';
 import { AgoraChatProvider } from './contexts/AgoraChatContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import Layout from './components/Common/Layout';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -154,6 +156,8 @@ const AppRoutes = () => {
         />
         <Route path="qa" element={<QASection />} />
         <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+
+        <Route path="notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
 
         <Route
           path="my-courses"
@@ -317,11 +321,13 @@ const AppRoutes = () => {
 function App() {
   return (
     <AuthProvider>
-      <AgoraChatProvider>
-        <Router>
-          <AppRoutes />
-        </Router>
-      </AgoraChatProvider>
+      <NotificationProvider>
+        <AgoraChatProvider>
+          <Router>
+            <AppRoutes />
+          </Router>
+        </AgoraChatProvider>
+      </NotificationProvider>
     </AuthProvider>
   );
 }
