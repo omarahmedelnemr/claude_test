@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import blogService from '../../services/blogService';
-import { Calendar, Eye, Heart, Loader2, MessageCircle, Plus, Trash2, Shield, Flag, AlertTriangle, CheckCircle, X } from 'lucide-react';
+import { Calendar, Eye, Heart, Loader2, MessageCircle, Plus, Trash2, Shield, Flag, AlertTriangle, CheckCircle, X, Search } from 'lucide-react';
+import Pagination from '../../components/Common/Pagination';
 import api from '../../services/api';
 import './BlogList.css';
 import '../Admin/AdminDashboard.css';
@@ -61,11 +62,28 @@ const ReportedArticleRow = ({ report, onDecision }) => {
 };
 
 const BlogList = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { currentUser } = useAuth();
+  
+  // Initialize from URL params or defaults
+  const [page, setPage] = useState(() => parseInt(searchParams.get('page') || '1', 10));
+  const [searchTerm, setSearchTerm] = useState(() => searchParams.get('search') || '');
+  const [searchInput, setSearchInput] = useState(() => searchParams.get('search') || ''); // Local state for input
+  const [selectedCategory, setSelectedCategory] = useState(() => searchParams.get('category') || 'all');
+  const [categories, setCategories] = useState([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deletingArticle, setDeletingArticle] = useState(null);
+  const [pagination, setPagination] = useState({ 
+    total: 0, 
+    totalPages: 1, 
+    hasNextPage: false, 
+    hasPreviousPage: false 
+  });
+  const searchInputRef = useRef(null);
+  const searchTimeoutRef = useRef(null);
 
   // Admin moderation state
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'supervisor';
@@ -75,12 +93,117 @@ const BlogList = () => {
   const [reportedLoading, setReportedLoading] = useState(false);
   const [modToast, setModToast] = useState(null);
 
+  // Fetch categories on mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setLoadingCategories(true);
+        const categoriesData = await blogService.getCategoriesList();
+        setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  // Sync state from URL on mount
+  useEffect(() => {
+    const urlPage = parseInt(searchParams.get('page') || '1', 10);
+    const urlSearch = searchParams.get('search') || '';
+    const urlCategory = searchParams.get('category') || 'all';
+    if (urlPage !== page) setPage(urlPage);
+    if (urlSearch !== searchTerm) {
+      setSearchTerm(urlSearch);
+      setSearchInput(urlSearch);
+    }
+    if (urlCategory !== selectedCategory) setSelectedCategory(urlCategory);
+  }, []); // Only run on mount
+
+  // Debounced search effect - updates searchTerm after user stops typing
+  useEffect(() => {
+    // Clear existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Set new timeout to update searchTerm after 500ms of no typing
+    searchTimeoutRef.current = setTimeout(() => {
+      if (searchInput !== searchTerm) {
+        setSearchTerm(searchInput);
+        setPage(1); // Reset to page 1 when search changes
+      }
+    }, 500);
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchInput]); // Only depend on searchInput, not searchTerm
+
+  // Update URL when page, search, or category changes
+  useEffect(() => {
+    const currentPage = searchParams.get('page');
+    const currentSearch = searchParams.get('search') || '';
+    const currentCategory = searchParams.get('category') || 'all';
+    
+    if (page.toString() !== (currentPage || '1') || 
+        searchTerm !== currentSearch || 
+        selectedCategory !== currentCategory) {
+      const params = new URLSearchParams();
+      if (page > 1) params.set('page', page.toString());
+      if (searchTerm) params.set('search', searchTerm);
+      if (selectedCategory !== 'all') params.set('category', selectedCategory);
+      setSearchParams(params, { replace: true });
+    }
+  }, [page, searchTerm, selectedCategory, setSearchParams, searchParams]);
+
+  // Reset to page 1 when category filter changes
+  useEffect(() => {
+    const urlCategory = searchParams.get('category') || 'all';
+    if (selectedCategory !== urlCategory && selectedCategory !== 'all') {
+      setPage(1);
+    }
+  }, [selectedCategory]);
+
   useEffect(() => {
     const fetchArticles = async () => {
       try {
         setLoading(true);
-        const data = await blogService.getArticleFeed();
-        setArticles(Array.isArray(data) ? data : (data.articles || []));
+        setError(''); // Clear previous errors
+        const params = {
+          loadBlock: page,
+          ...(searchTerm && { searchQuery: searchTerm }),
+          ...(selectedCategory !== 'all' && { categoryID: selectedCategory })
+        };
+        const data = await blogService.getArticleFeed(params);
+        
+        // Handle response format - could be array or object with data and pagination
+        let articlesArray = [];
+        if (Array.isArray(data)) {
+          articlesArray = data;
+        } else if (data.data) {
+          articlesArray = Array.isArray(data.data) ? data.data : [];
+        } else if (data.articles) {
+          articlesArray = Array.isArray(data.articles) ? data.articles : [];
+        }
+        
+        setArticles(articlesArray);
+        
+        // Extract pagination metadata
+        if (data.pagination) {
+          setPagination({
+            total: data.pagination.total || 0,
+            totalPages: data.pagination.totalPages || 1,
+            hasNextPage: data.pagination.hasNextPage || false,
+            hasPreviousPage: data.pagination.hasPreviousPage || false,
+          });
+        }
       } catch (err) {
         console.error('Error fetching articles:', err);
         setError('Failed to load articles');
@@ -90,7 +213,45 @@ const BlogList = () => {
     };
 
     fetchArticles();
-  }, []);
+  }, [page, searchTerm, selectedCategory]);
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    // URL will be updated by useEffect
+  };
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchInput(value); // Update local input state immediately (no re-render of component)
+    // searchTerm will be updated by debounced useEffect
+  };
+
+  const handleSearchKeyPress = (e) => {
+    // If user presses Enter, update search immediately
+    if (e.key === 'Enter') {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      setSearchTerm(searchInput);
+      setPage(1);
+    }
+  };
+
+  const handleCategoryChange = (categoryId) => {
+    setSelectedCategory(categoryId);
+    // Page reset will be handled by useEffect
+  };
+
+  const handleClearFilters = () => {
+    setSearchInput('');
+    setSearchTerm('');
+    setSelectedCategory('all');
+    setPage(1);
+    // Focus back on search input after clearing
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  };
 
   const showModToast = (type, text) => {
     setModToast({ type, text });
@@ -168,31 +329,6 @@ const BlogList = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="container">
-        <div className="page-header">
-          <h1>Blog Articles</h1>
-          <p>Loading articles...</p>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
-          <Loader2 size={32} className="spinner" />
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="container">
-        <div className="page-header">
-          <h1>Blog Articles</h1>
-          <p>{error}</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="container">
       {/* Admin moderation toast */}
@@ -227,6 +363,116 @@ const BlogList = () => {
         </div>
       </div>
 
+      {/* Search and Filter Section */}
+      <div className="blog-filters" style={{ 
+        marginBottom: '2em', 
+        padding: '1.5em', 
+        background: 'white', 
+        borderRadius: '12px', 
+        boxShadow: 'var(--card-shadow)' 
+      }}>
+        <div style={{ display: 'flex', gap: '1em', flexWrap: 'wrap', alignItems: 'center' }}>
+          {/* Search Input */}
+          <div style={{ position: 'relative', flex: '1', minWidth: '250px' }}>
+            <Search 
+              size={20} 
+              style={{ 
+                position: 'absolute', 
+                left: '12px', 
+                top: '50%', 
+                transform: 'translateY(-50%)', 
+                color: '#9ca3af' 
+              }} 
+            />
+            <input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Search articles..."
+              value={searchInput}
+              onChange={handleSearchChange}
+              onKeyPress={handleSearchKeyPress}
+              style={{
+                width: '100%',
+                padding: '0.75em 1em 0.75em 2.75em',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                fontSize: '0.95em',
+                outline: 'none',
+                transition: 'border-color 0.3s ease'
+              }}
+              onFocus={(e) => e.target.style.borderColor = 'var(--primary-color)'}
+              onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
+            />
+          </div>
+
+          {/* Category Filter */}
+          <div style={{ display: 'flex', gap: '0.5em', flexWrap: 'wrap', alignItems: 'center' }}>
+            <button
+              onClick={() => handleCategoryChange('all')}
+              style={{
+                padding: '0.75em 1.25em',
+                border: selectedCategory === 'all' ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
+                borderRadius: '8px',
+                background: selectedCategory === 'all' ? 'var(--primary-color)' : 'white',
+                color: selectedCategory === 'all' ? 'white' : 'var(--text-dark)',
+                cursor: 'pointer',
+                fontWeight: selectedCategory === 'all' ? '600' : '400',
+                transition: 'all 0.3s ease',
+                fontSize: '0.9em'
+              }}
+            >
+              All Categories
+            </button>
+            {loadingCategories ? (
+              <Loader2 size={20} className="spinner" />
+            ) : (
+              categories.map(category => (
+                <button
+                  key={category.id}
+                  onClick={() => handleCategoryChange(category.id)}
+                  style={{
+                    padding: '0.75em 1.25em',
+                    border: selectedCategory === category.id ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    background: selectedCategory === category.id ? 'var(--primary-color)' : 'white',
+                    color: selectedCategory === category.id ? 'white' : 'var(--text-dark)',
+                    cursor: 'pointer',
+                    fontWeight: selectedCategory === category.id ? '600' : '400',
+                    transition: 'all 0.3s ease',
+                    fontSize: '0.9em'
+                  }}
+                >
+                  {category.category || category.en_category || category.mal_category}
+                </button>
+              ))
+            )}
+          </div>
+
+          {/* Clear Filters Button */}
+          {(searchInput || selectedCategory !== 'all') && (
+            <button
+              onClick={handleClearFilters}
+              style={{
+                padding: '0.75em 1.25em',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                background: 'white',
+                color: 'var(--text-dark)',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                fontSize: '0.9em',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5em'
+              }}
+            >
+              <X size={16} />
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Reported Articles Panel */}
       {isAdmin && reportedOpen && (
         <div className="card" style={{ marginBottom: '20px', border: '2px solid #ef4444' }}>
@@ -252,13 +498,23 @@ const BlogList = () => {
         </div>
       )}
 
-      {articles.length === 0 ? (
+      {/* Articles Section - Shows loading only in this area, search/filter stays visible */}
+      {loading && articles.length === 0 ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}>
+          <Loader2 size={32} className="spinner" />
+        </div>
+      ) : error && articles.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '2rem', color: '#ef4444' }}>
+          <p>{error}</p>
+        </div>
+      ) : articles.length === 0 ? (
         <div className="empty-state">
           <h3>No articles found</h3>
           <p>Check back later for new articles!</p>
         </div>
       ) : (
-        <div className="blog-grid">
+        <>
+          <div className="blog-grid">
           {articles.map(article => {
             const articleId = article.id || article.articleID;
             return (
@@ -388,7 +644,25 @@ const BlogList = () => {
               </div>
             );
           })}
-        </div>
+          </div>
+          
+          {/* Loading overlay when loading more (pagination) */}
+          {loading && articles.length > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem', marginTop: '1rem' }}>
+              <Loader2 size={24} className="spinner" />
+            </div>
+          )}
+          
+          {!loading && (
+            <Pagination
+              currentPage={page}
+              totalPages={pagination.totalPages}
+              hasNextPage={pagination.hasNextPage}
+              hasPreviousPage={pagination.hasPreviousPage}
+              onPageChange={handlePageChange}
+            />
+          )}
+        </>
       )}
     </div>
   );

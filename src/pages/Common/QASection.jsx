@@ -1,19 +1,57 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSearchParams } from 'react-router-dom';
 import qaService from '../../services/qaService';
 import { Search, ThumbsUp, ChevronDown, ChevronUp, MessageSquare, Send, X, Loader2, AlertCircle, Trash2 } from 'lucide-react';
 import './QASection.css';
 
 const QASection = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { currentUser } = useAuth();
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all'); // all, answered, pending
+  
+  // Initialize from URL params or defaults
+  const [searchTerm, setSearchTerm] = useState(() => searchParams.get('search') || '');
+  const [statusFilter, setStatusFilter] = useState(() => searchParams.get('status') || 'all'); // all, answered, pending
   const [expandedId, setExpandedId] = useState(null);
-  const [loadBlock, setLoadBlock] = useState(1);
+  const [loadBlock, setLoadBlock] = useState(() => parseInt(searchParams.get('page') || '1', 10));
   const [hasMore, setHasMore] = useState(false);
+  const [pagination, setPagination] = useState({ 
+    total: 0, 
+    totalPages: 1, 
+    hasNextPage: false, 
+    hasPreviousPage: false 
+  });
+
+  // Sync state from URL on mount
+  useEffect(() => {
+    const urlPage = parseInt(searchParams.get('page') || '1', 10);
+    const urlSearch = searchParams.get('search') || '';
+    const urlStatus = searchParams.get('status') || 'all';
+    
+    if (urlPage !== loadBlock) setLoadBlock(urlPage);
+    if (urlSearch !== searchTerm) setSearchTerm(urlSearch);
+    if (urlStatus !== statusFilter) setStatusFilter(urlStatus);
+  }, []); // Only run on mount
+
+  // Update URL when filters or page change (but not on initial mount)
+  useEffect(() => {
+    const currentPage = searchParams.get('page') || '1';
+    const currentSearch = searchParams.get('search') || '';
+    const currentStatus = searchParams.get('status') || 'all';
+    
+    if (loadBlock.toString() !== currentPage || 
+        searchTerm !== currentSearch || 
+        statusFilter !== currentStatus) {
+      const params = new URLSearchParams();
+      if (loadBlock > 1) params.set('page', loadBlock.toString());
+      if (searchTerm) params.set('search', searchTerm);
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+      setSearchParams(params, { replace: true });
+    }
+  }, [loadBlock, searchTerm, statusFilter, setSearchParams, searchParams]);
 
   // Form states
   const [showQuestionForm, setShowQuestionForm] = useState(false);
@@ -47,8 +85,16 @@ const QASection = () => {
       };
       
       const response = await qaService.getQuestions(params);
-      // The service already returns response.data, so response is the array directly
-      const questionsData = Array.isArray(response) ? response : [];
+      
+      // Handle response format - could be array or object with data and pagination
+      let questionsData = [];
+      if (Array.isArray(response)) {
+        questionsData = response;
+      } else if (response.data) {
+        questionsData = Array.isArray(response.data) ? response.data : [];
+      } else {
+        questionsData = [];
+      }
       
       if (loadBlock === 1) {
         setQuestions(questionsData);
@@ -56,8 +102,19 @@ const QASection = () => {
         setQuestions(prev => [...prev, ...questionsData]);
       }
       
-      // Check if there are more questions (assuming 10 per page)
-      setHasMore(questionsData.length === 10);
+      // Use pagination metadata if available, otherwise fall back to length check
+      if (response.pagination) {
+        setPagination({
+          total: response.pagination.total || 0,
+          totalPages: response.pagination.totalPages || 1,
+          hasNextPage: response.pagination.hasNextPage || false,
+          hasPreviousPage: response.pagination.hasPreviousPage || false,
+        });
+        setHasMore(response.pagination.hasNextPage || false);
+      } else {
+        // Fallback: check if there are more questions (assuming 10 per page)
+        setHasMore(questionsData.length === 10);
+      }
     } catch (err) {
       console.error('Error fetching questions:', err);
       setError(err.message || 'Failed to load questions. Please try again.');
@@ -66,14 +123,21 @@ const QASection = () => {
     }
   };
 
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    if (searchTerm !== searchParams.get('search') || statusFilter !== searchParams.get('status')) {
+      setLoadBlock(1);
+    }
+  }, [searchTerm, statusFilter]);
+
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
-    setLoadBlock(1); // Reset to first page on search
+    // Page reset will be handled by useEffect
   };
 
   const handleStatusFilter = (status) => {
     setStatusFilter(status);
-    setLoadBlock(1); // Reset to first page on filter change
+    // Page reset will be handled by useEffect
   };
 
   const toggleExpand = (id) => {

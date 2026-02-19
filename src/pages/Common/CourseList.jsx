@@ -1,30 +1,81 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import courseService from '../../services/courseService';
 import { Search, Loader2 } from 'lucide-react';
+import Pagination from '../../components/Common/Pagination';
 import './CourseList.css';
 
 const CourseList = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { currentUser } = useAuth();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('all');
+  
+  // Initialize from URL params or defaults
+  const [searchTerm, setSearchTerm] = useState(() => searchParams.get('search') || '');
+  const [selectedSubject, setSelectedSubject] = useState(() => searchParams.get('subject') || 'all');
   const [subjects, setSubjects] = useState(['all']);
   const [failedImages, setFailedImages] = useState(new Set());
   const [loadingSubjects, setLoadingSubjects] = useState(true);
+  const [page, setPage] = useState(() => parseInt(searchParams.get('page') || '1', 10));
+  const [pagination, setPagination] = useState({ 
+    total: 0, 
+    totalPages: 1, 
+    hasNextPage: false, 
+    hasPreviousPage: false 
+  });
 
   // Fetch subjects on mount (metadata)
   useEffect(() => {
     fetchSubjects();
   }, []);
 
-  // Fetch courses on mount and when filters change
+  // Sync state from URL on mount
+  useEffect(() => {
+    const urlPage = parseInt(searchParams.get('page') || '1', 10);
+    const urlSearch = searchParams.get('search') || '';
+    const urlSubject = searchParams.get('subject') || 'all';
+    
+    if (urlPage !== page) setPage(urlPage);
+    if (urlSearch !== searchTerm) setSearchTerm(urlSearch);
+    if (urlSubject !== selectedSubject) setSelectedSubject(urlSubject);
+  }, []); // Only run on mount
+
+  // Update URL when filters or page change (but not on initial mount)
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (page > 1) params.set('page', page.toString());
+    if (searchTerm) params.set('search', searchTerm);
+    if (selectedSubject !== 'all') params.set('subject', selectedSubject);
+    
+    // Only update if URL is different
+    const currentPage = searchParams.get('page');
+    const currentSearch = searchParams.get('search') || '';
+    const currentSubject = searchParams.get('subject') || 'all';
+    
+    if (page.toString() !== (currentPage || '1') || 
+        searchTerm !== currentSearch || 
+        selectedSubject !== currentSubject) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [page, searchTerm, selectedSubject, setSearchParams, searchParams]);
+
+  // Reset to page 1 when filters change (but preserve URL if it's from URL)
+  useEffect(() => {
+    const urlSearch = searchParams.get('search') || '';
+    const urlSubject = searchParams.get('subject') || 'all';
+    if ((searchTerm !== urlSearch || selectedSubject !== urlSubject) && 
+        (searchTerm !== '' || selectedSubject !== 'all')) {
+      setPage(1);
+    }
+  }, [searchTerm, selectedSubject]);
+
+  // Fetch courses when page or filters change
   useEffect(() => {
     fetchCourses();
-  }, [searchTerm, selectedSubject]);
+  }, [page, searchTerm, selectedSubject]);
 
   const fetchSubjects = async () => {
     try {
@@ -50,7 +101,7 @@ const CourseList = () => {
         sortBy: 'createdAt',
         sortOrder: 'DESC',
         limit: 20,
-        loadBlock: 1,
+        loadBlock: page,
       };
       const response = await courseService.getAvailableCourses(params);
       
@@ -59,12 +110,27 @@ const CourseList = () => {
         ? response 
         : response.data || response.courses || [];
       setCourses(coursesData);
+      
+      // Extract pagination metadata
+      if (response.pagination) {
+        setPagination({
+          total: response.pagination.total || 0,
+          totalPages: response.pagination.totalPages || 1,
+          hasNextPage: response.pagination.hasNextPage || false,
+          hasPreviousPage: response.pagination.hasPreviousPage || false,
+        });
+      }
     } catch (err) {
       console.error('Error fetching courses:', err);
       setError(err.message || 'Failed to load courses. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    // URL will be updated by useEffect
   };
 
   if (loading && courses.length === 0) {
@@ -128,7 +194,12 @@ const CourseList = () => {
       )}
 
       <div className="results-info">
-        <p>Showing {courses.length} course{courses.length !== 1 ? 's' : ''}</p>
+        <p>
+          {pagination.total > 0 
+            ? `Showing ${courses.length} of ${pagination.total} course${pagination.total !== 1 ? 's' : ''}`
+            : `Showing ${courses.length} course${courses.length !== 1 ? 's' : ''}`
+          }
+        </p>
       </div>
 
       {courses.length === 0 && !loading ? (
@@ -223,6 +294,16 @@ const CourseList = () => {
             );
           })}
         </div>
+      )}
+      
+      {courses.length > 0 && (
+        <Pagination
+          currentPage={page}
+          totalPages={pagination.totalPages}
+          hasNextPage={pagination.hasNextPage}
+          hasPreviousPage={pagination.hasPreviousPage}
+          onPageChange={handlePageChange}
+        />
       )}
     </div>
   );

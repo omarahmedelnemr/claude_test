@@ -1,30 +1,87 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSearchParams } from 'react-router-dom';
 import { Calendar, Clock, Video, X, User } from 'lucide-react';
 import appointmentService from '../../services/appointmentService';
 import VideoCall from '../../components/Common/VideoCall';
+import Pagination from '../../components/Common/Pagination';
 import './MyAppointments.css';
 
 const MyAppointments = () => {
+    const [searchParams, setSearchParams] = useSearchParams();
     const { currentUser } = useAuth();
-    const [activeTab, setActiveTab] = useState('upcoming');
+    
+    // Initialize from URL params or defaults
+    const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'upcoming');
     const [appointments, setAppointments] = useState([]);
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showVideoCall, setShowVideoCall] = useState(false);
     const [videoData, setVideoData] = useState(null);
     const [joiningId, setJoiningId] = useState(null);
+    
+    // Separate pagination state for upcoming and history - initialize from URL
+    const [upcomingPage, setUpcomingPage] = useState(() => 
+        parseInt(searchParams.get('upcomingPage') || searchParams.get('page') || '1', 10)
+    );
+    const [historyPage, setHistoryPage] = useState(() => 
+        parseInt(searchParams.get('historyPage') || '1', 10)
+    );
+    const [upcomingPagination, setUpcomingPagination] = useState({ 
+        total: 0, 
+        totalPages: 1, 
+        hasNextPage: false, 
+        hasPreviousPage: false 
+    });
+    const [historyPagination, setHistoryPagination] = useState({ 
+        total: 0, 
+        totalPages: 1, 
+        hasNextPage: false, 
+        hasPreviousPage: false 
+    });
 
     const role = currentUser?.role;
+    const LIMIT = 10;
+
+    // Sync state from URL on mount
+    useEffect(() => {
+        const urlTab = searchParams.get('tab') || 'upcoming';
+        const urlUpcomingPage = parseInt(searchParams.get('upcomingPage') || searchParams.get('page') || '1', 10);
+        const urlHistoryPage = parseInt(searchParams.get('historyPage') || '1', 10);
+        
+        if (urlTab !== activeTab) setActiveTab(urlTab);
+        if (urlUpcomingPage !== upcomingPage) setUpcomingPage(urlUpcomingPage);
+        if (urlHistoryPage !== historyPage) setHistoryPage(urlHistoryPage);
+    }, []); // Only run on mount
+
+    // Update URL when tab or pages change (but not on initial mount)
+    useEffect(() => {
+        const currentTab = searchParams.get('tab') || 'upcoming';
+        const currentUpcomingPage = searchParams.get('upcomingPage') || searchParams.get('page') || '1';
+        const currentHistoryPage = searchParams.get('historyPage') || '1';
+        
+        if (activeTab !== currentTab || 
+            upcomingPage.toString() !== currentUpcomingPage || 
+            historyPage.toString() !== currentHistoryPage) {
+            const params = new URLSearchParams();
+            if (activeTab !== 'upcoming') params.set('tab', activeTab);
+            if (upcomingPage > 1) params.set('upcomingPage', upcomingPage.toString());
+            if (historyPage > 1) params.set('historyPage', historyPage.toString());
+            setSearchParams(params, { replace: true });
+        }
+    }, [activeTab, upcomingPage, historyPage, setSearchParams, searchParams]);
 
     useEffect(() => {
         loadAppointments();
-    }, [role]);
+    }, [role, activeTab, upcomingPage, historyPage]);
 
     const loadAppointments = async () => {
         setLoading(true);
         try {
             let active, hist;
+            const activeParams = { limit: LIMIT, loadBlock: upcomingPage };
+            const historyParams = { limit: LIMIT, loadBlock: historyPage };
+            
             if (role === 'teacher') {
                 active = await appointmentService.getTeacherActiveAppointments();
                 hist = await appointmentService.getTeacherAppointmentHistory();
@@ -32,16 +89,63 @@ const MyAppointments = () => {
                 active = await appointmentService.getParentActiveAppointments();
                 hist = [];
             } else {
-                active = await appointmentService.getActiveAppointments();
-                hist = await appointmentService.getAppointmentHistory();
+                active = await appointmentService.getActiveAppointments(activeParams);
+                hist = await appointmentService.getAppointmentHistory(historyParams);
             }
-            setAppointments(Array.isArray(active) ? active : []);
-            setHistory(Array.isArray(hist) ? hist : []);
+            
+            // Extract data and pagination for active appointments
+            if (Array.isArray(active)) {
+                setAppointments(active);
+            } else if (active.data) {
+                setAppointments(Array.isArray(active.data) ? active.data : []);
+                if (active.pagination) {
+                    setUpcomingPagination({
+                        total: active.pagination.total || 0,
+                        totalPages: active.pagination.totalPages || 1,
+                        hasNextPage: active.pagination.hasNextPage || false,
+                        hasPreviousPage: active.pagination.hasPreviousPage || false,
+                    });
+                }
+            } else {
+                setAppointments([]);
+            }
+            
+            // Extract data and pagination for history
+            if (Array.isArray(hist)) {
+                setHistory(hist);
+            } else if (hist.data) {
+                setHistory(Array.isArray(hist.data) ? hist.data : []);
+                if (hist.pagination) {
+                    setHistoryPagination({
+                        total: hist.pagination.total || 0,
+                        totalPages: hist.pagination.totalPages || 1,
+                        hasNextPage: hist.pagination.hasNextPage || false,
+                        hasPreviousPage: hist.pagination.hasPreviousPage || false,
+                    });
+                }
+            } else {
+                setHistory([]);
+            }
         } catch (err) {
             console.error("Failed to load appointments:", err);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleUpcomingPageChange = (newPage) => {
+        setUpcomingPage(newPage);
+        // URL will be updated by useEffect
+    };
+
+    const handleHistoryPageChange = (newPage) => {
+        setHistoryPage(newPage);
+        // URL will be updated by useEffect
+    };
+
+    const handleTabChange = (tab) => {
+        setActiveTab(tab);
+        // URL will be updated by useEffect
     };
 
     const handleJoinCall = async (appointment) => {
@@ -123,16 +227,16 @@ const MyAppointments = () => {
             <div className="tabs">
                 <button
                     className={`tab ${activeTab === 'upcoming' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('upcoming')}
+                    onClick={() => handleTabChange('upcoming')}
                 >
-                    Upcoming ({appointments.length})
+                    Upcoming ({upcomingPagination.total || appointments.length})
                 </button>
                 {role !== 'parent' && (
                     <button
                         className={`tab ${activeTab === 'history' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('history')}
+                        onClick={() => handleTabChange('history')}
                     >
-                        History ({history.length})
+                        History ({historyPagination.total || history.length})
                     </button>
                 )}
             </div>
@@ -214,6 +318,17 @@ const MyAppointments = () => {
                     })
                 )}
             </div>
+
+            {/* Pagination for each tab */}
+            {!loading && currentList.length > 0 && (
+                <Pagination
+                    currentPage={activeTab === 'upcoming' ? upcomingPage : historyPage}
+                    totalPages={activeTab === 'upcoming' ? upcomingPagination.totalPages : historyPagination.totalPages}
+                    hasNextPage={activeTab === 'upcoming' ? upcomingPagination.hasNextPage : historyPagination.hasNextPage}
+                    hasPreviousPage={activeTab === 'upcoming' ? upcomingPagination.hasPreviousPage : historyPagination.hasPreviousPage}
+                    onPageChange={activeTab === 'upcoming' ? handleUpcomingPageChange : handleHistoryPageChange}
+                />
+            )}
 
             {showVideoCall && videoData && (
                 <VideoCall

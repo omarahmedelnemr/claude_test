@@ -1,22 +1,47 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import courseService from '../../services/courseService';
 import { BookOpen, Clock, Award, TrendingUp, Loader2 } from 'lucide-react';
+import Pagination from '../../components/Common/Pagination';
 import './StudentDashboard.css';
 
 const StudentDashboard = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { currentUser } = useAuth();
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [failedImages, setFailedImages] = useState(new Set());
+  const [page, setPage] = useState(() => parseInt(searchParams.get('page') || '1', 10));
+  const [pagination, setPagination] = useState({ 
+    total: 0, 
+    totalPages: 1, 
+    hasNextPage: false, 
+    hasPreviousPage: false 
+  });
+
+  // Sync state from URL on mount
+  useEffect(() => {
+    const urlPage = parseInt(searchParams.get('page') || '1', 10);
+    if (urlPage !== page) setPage(urlPage);
+  }, []); // Only run on mount
+
+  // Update URL when page changes (but not on initial mount)
+  useEffect(() => {
+    const currentPage = searchParams.get('page');
+    if (page.toString() !== (currentPage || '1')) {
+      const params = new URLSearchParams();
+      if (page > 1) params.set('page', page.toString());
+      setSearchParams(params, { replace: true });
+    }
+  }, [page, setSearchParams, searchParams]);
 
   useEffect(() => {
     if (currentUser?.id) {
       fetchEnrolledCourses();
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, page]);
 
   const fetchEnrolledCourses = async () => {
     try {
@@ -26,17 +51,35 @@ const StudentDashboard = () => {
         studentID: currentUser.id,
         status: 'enrolled',
         limit: 10,
-        loadBlock: 1,
+        loadBlock: page,
       });
       
-      const enrollments = Array.isArray(response) ? response : response.enrollments || response.data || [];
+      // Extract data and pagination info
+      const enrollments = Array.isArray(response) 
+        ? response 
+        : response.enrollments || response.data || [];
       setEnrolledCourses(enrollments);
+      
+      // Extract pagination metadata
+      if (response.pagination) {
+        setPagination({
+          total: response.pagination.total || 0,
+          totalPages: response.pagination.totalPages || 1,
+          hasNextPage: response.pagination.hasNextPage || false,
+          hasPreviousPage: response.pagination.hasPreviousPage || false,
+        });
+      }
     } catch (err) {
       console.error('Error fetching enrollments:', err);
       setError(err.message || 'Failed to load courses');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    // URL will be updated by useEffect
   };
 
   // Calculate statistics from enrolled courses
@@ -190,6 +233,16 @@ const StudentDashboard = () => {
               Browse Courses
             </Link>
           </div>
+        )}
+        
+        {enrolledCourses.length > 0 && (
+          <Pagination
+            currentPage={page}
+            totalPages={pagination.totalPages}
+            hasNextPage={pagination.hasNextPage}
+            hasPreviousPage={pagination.hasPreviousPage}
+            onPageChange={handlePageChange}
+          />
         )}
       </div>
     </div>

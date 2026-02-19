@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSearchParams } from 'react-router-dom';
 import communityService from '../../services/communityService';
 import FileUpload from '../../components/Common/FileUpload';
 import ImageGallery from '../../components/Common/ImageGallery';
@@ -69,13 +70,20 @@ const ReportedPostRow = ({ report, onDecision }) => {
 };
 
 const Community = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+
+  // Initialize from URL params or defaults
+  const [currentPage, setCurrentPage] = useState(() => parseInt(searchParams.get('page') || '1', 10));
+  const [selectedCommunity, setSelectedCommunity] = useState(() => searchParams.get('community') || '');
 
   // State for posts and communities
   const [posts, setPosts] = useState([]);
   const [communities, setCommunities] = useState([]);
-  const [selectedCommunity, setSelectedCommunity] = useState('');
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const postsContainerRef = useRef(null);
 
   // State for creating new posts
   const [newPostContent, setNewPostContent] = useState('');
@@ -133,14 +141,44 @@ const Community = () => {
   const [error, setError] = useState(null);
   const [loadingComments, setLoadingComments] = useState({});
 
-  // Load posts and communities on mount
+  // Sync state from URL on mount
+  useEffect(() => {
+    const urlPage = parseInt(searchParams.get('page') || '1', 10);
+    const urlCommunity = searchParams.get('community') || '';
+    if (urlPage !== currentPage) setCurrentPage(urlPage);
+    if (urlCommunity !== selectedCommunity) setSelectedCommunity(urlCommunity);
+  }, []); // Only run on mount
+
+  // Update URL when page or community changes (for infinite scroll tracking)
+  useEffect(() => {
+    const urlPage = searchParams.get('page');
+    const urlCommunity = searchParams.get('community') || '';
+    if (currentPage.toString() !== (urlPage || '1') || selectedCommunity !== urlCommunity) {
+      const params = new URLSearchParams();
+      if (currentPage > 1) params.set('page', currentPage.toString());
+      if (selectedCommunity) params.set('community', selectedCommunity);
+      setSearchParams(params, { replace: true });
+    }
+  }, [currentPage, selectedCommunity, setSearchParams, searchParams]);
+
+  // Reset to page 1 and clear posts when community filter changes
+  useEffect(() => {
+    const urlCommunity = searchParams.get('community') || '';
+    if (selectedCommunity !== urlCommunity && selectedCommunity !== '') {
+      setCurrentPage(1);
+      setPosts([]);
+      setHasMorePosts(true);
+    }
+  }, [selectedCommunity]);
+
+  // Load initial posts and communities on mount and when community changes
   useEffect(() => {
     if (currentUser) {
       fetchInitialData();
     } else {
       setLoading(false);
     }
-  }, [currentUser]);
+  }, [currentUser, selectedCommunity]);
 
   // Update selected post community when filter changes
   useEffect(() => {
@@ -159,20 +197,41 @@ const Community = () => {
     try {
       setLoading(true);
       setError(null);
+      setCurrentPage(1);
+      setHasMorePosts(true);
 
-      // Fetch communities and posts in parallel
+      // Fetch communities and first page of posts in parallel
       const [communitiesData, postsData] = await Promise.all([
         communityService.getCommunityList().catch(() => []),
         communityService.getPostFeed({
           studentID: currentUser.role === 'student' ? currentUser.id : undefined,
           teacherID: currentUser.role === 'teacher' ? currentUser.id : undefined,
+          communityID: selectedCommunity || undefined,
           loadBlock: 1
         })
       ]);
 
       setCommunities(Array.isArray(communitiesData) ? communitiesData : []);
-      const postsArray = Array.isArray(postsData) ? postsData : [];
+      
+      // Handle response format - could be array or object with data and pagination
+      let postsArray = [];
+      if (Array.isArray(postsData)) {
+        postsArray = postsData;
+      } else if (postsData.data) {
+        postsArray = Array.isArray(postsData.data) ? postsData.data : [];
+      } else {
+        postsArray = [];
+      }
+      
       setPosts(postsArray);
+      
+      // Extract pagination metadata for infinite scroll
+      if (postsData.pagination) {
+        setHasMorePosts(postsData.pagination.hasNextPage || false);
+      } else {
+        // Fallback: if we got 15 posts (the limit), assume there might be more
+        setHasMorePosts(postsArray.length === 15);
+      }
       
       // Initialize comments from posts feed (latest 3 comments per post)
       const initialComments = {};
@@ -206,53 +265,93 @@ const Community = () => {
     }
   };
 
-  const fetchPosts = async (communityID = null) => {
+  // Load more posts for infinite scroll
+  const loadMorePosts = useCallback(async () => {
+    if (loadingMore || !hasMorePosts || !currentUser) return;
+
     try {
-      setLoading(true);
+      setLoadingMore(true);
+      const nextPage = currentPage + 1;
       const postsData = await communityService.getPostFeed({
         studentID: currentUser.role === 'student' ? currentUser.id : undefined,
         teacherID: currentUser.role === 'teacher' ? currentUser.id : undefined,
-        communityID: communityID || undefined,
-        loadBlock: 1
+        communityID: selectedCommunity || undefined,
+        loadBlock: nextPage
       });
-      const postsArray = Array.isArray(postsData) ? postsData : [];
-      setPosts(postsArray);
       
-      // Initialize comments from posts feed (latest 3 comments per post)
-      const initialComments = {};
-      const initialLoadBlocks = {};
-      const initialHasMore = {};
-      const initialExpanded = {};
+      // Handle response format
+      let postsArray = [];
+      if (Array.isArray(postsData)) {
+        postsArray = postsData;
+      } else if (postsData.data) {
+        postsArray = Array.isArray(postsData.data) ? postsData.data : [];
+      } else {
+        postsArray = [];
+      }
+      
+      // Append new posts to existing ones
+      setPosts(prev => [...prev, ...postsArray]);
+      setCurrentPage(nextPage);
+      
+      // Update hasMorePosts based on pagination metadata
+      if (postsData.pagination) {
+        setHasMorePosts(postsData.pagination.hasNextPage || false);
+      } else {
+        // Fallback: if we got 15 posts, assume there might be more
+        setHasMorePosts(postsArray.length === 15);
+      }
+      
+      // Initialize comments from new posts feed (latest 3 comments per post)
+      const newComments = {};
+      const newLoadBlocks = {};
+      const newHasMore = {};
+      const newExpanded = {};
       postsArray.forEach(post => {
         if (post.comments && Array.isArray(post.comments)) {
-          initialComments[post.id] = post.comments;
-          initialLoadBlocks[post.id] = 1; // Already loaded first 3 comments
-          // Show "See More" if we have 3 comments and total is more than 3
-          initialHasMore[post.id] = post.comments.length >= 3 && (post.commentsNumber || 0) > 3;
+          newComments[post.id] = post.comments;
+          newLoadBlocks[post.id] = 1;
+          newHasMore[post.id] = post.comments.length >= 3 && (post.commentsNumber || 0) > 3;
         } else {
-          // Initialize empty array for posts with no comments
-          initialComments[post.id] = [];
-          initialLoadBlocks[post.id] = 1;
-          initialHasMore[post.id] = false;
+          newComments[post.id] = [];
+          newLoadBlocks[post.id] = 1;
+          newHasMore[post.id] = false;
         }
-        // Expand comments section by default for all posts
-        initialExpanded[post.id] = true;
+        newExpanded[post.id] = true;
       });
-      setPostComments(prev => ({ ...prev, ...initialComments }));
-      setPostCommentsLoadBlock(prev => ({ ...prev, ...initialLoadBlocks }));
-      setPostCommentsHasMore(prev => ({ ...prev, ...initialHasMore }));
-      setExpandedComments(prev => ({ ...prev, ...initialExpanded }));
+      setPostComments(prev => ({ ...prev, ...newComments }));
+      setPostCommentsLoadBlock(prev => ({ ...prev, ...newLoadBlocks }));
+      setPostCommentsHasMore(prev => ({ ...prev, ...newHasMore }));
+      setExpandedComments(prev => ({ ...prev, ...newExpanded }));
     } catch (err) {
-      console.error('Error fetching posts:', err);
-      setError('Failed to load posts.');
+      console.error('Error loading more posts:', err);
+      setError('Failed to load more posts.');
     } finally {
-      setLoading(false);
+      setLoadingMore(false);
     }
-  };
+  }, [loadingMore, hasMorePosts, currentUser, currentPage, selectedCommunity]);
+
+  // Infinite scroll detection
+  useEffect(() => {
+    const handleScroll = () => {
+      if (loadingMore || !hasMorePosts) return;
+
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+
+      // Load more when user is 200px from bottom
+      if (scrollTop + windowHeight >= documentHeight - 200) {
+        loadMorePosts();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [loadingMore, hasMorePosts, loadMorePosts]);
 
   const handleCommunityFilter = (communityID) => {
     setSelectedCommunity(communityID);
-    fetchPosts(communityID);
+    // Posts will be reset and fetched by useEffect
   };
 
   const handleRemoveImage = (indexToRemove) => {
@@ -288,8 +387,10 @@ const Community = () => {
 
       await communityService.createPost(postData);
 
-      // Refresh posts
-      await fetchPosts(selectedCommunity);
+      // Refresh posts - reset to page 1 after creating new post
+      setCurrentPage(1);
+      setHasMorePosts(true);
+      fetchInitialData();
 
       // Clear form
       setNewPostContent('');
@@ -731,8 +832,9 @@ const Community = () => {
 
       await communityService.editPost(postData);
 
-      // Refresh posts
-      await fetchPosts(selectedCommunity);
+      // Refresh posts - stay on current page
+      // Posts will be refreshed by useEffect
+      fetchInitialData();
 
       // Close edit form
       handleCancelEdit();
@@ -1191,7 +1293,7 @@ const Community = () => {
           )}
 
           {/* Posts List */}
-          <div className="posts-list">
+          <div className="posts-list" ref={postsContainerRef}>
             {posts.length === 0 ? (
               <div className="no-posts">
                 <p>No posts yet. Be the first to share something!</p>
@@ -1508,6 +1610,19 @@ const Community = () => {
               ))
             )}
           </div>
+          
+          {/* Infinite scroll loading indicator */}
+          {loadingMore && (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '20px' }}>
+              <Loader className="spinner" size={32} />
+            </div>
+          )}
+          
+          {!hasMorePosts && posts.length > 0 && (
+            <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
+              <p>No more posts to load</p>
+            </div>
+          )}
         </div>
 
         <div className="community-sidebar">

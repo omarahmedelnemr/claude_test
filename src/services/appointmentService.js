@@ -29,13 +29,13 @@ export const appointmentService = {
     },
 
     // Student - Appointments List
-    getActiveAppointments: async () => {
-        const response = await api.get('/appointments/student/active-appointment-list');
+    getActiveAppointments: async (params = {}) => {
+        const response = await api.get('/appointments/student/active-appointment-list', { params });
         return response.data;
     },
 
-    getAppointmentHistory: async () => {
-        const response = await api.get('/appointments/student/appointment-history-list');
+    getAppointmentHistory: async (params = {}) => {
+        const response = await api.get('/appointments/student/appointment-history-list', { params });
         return response.data;
     },
 
