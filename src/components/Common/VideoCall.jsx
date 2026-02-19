@@ -173,7 +173,7 @@ const VideoCall = ({ channelName, appId, token, onEndCall }) => {
                     onClick={toggleMute}
                     title={isMuted ? 'Unmute' : 'Mute'}
                 >
-                    {isMuted ? <MicOff size={24} /> : <Mic size={24} />}
+                    {isMuted ? <MicOff size={32} /> : <Mic size={32} />}
                 </button>
 
                 <button
@@ -181,7 +181,7 @@ const VideoCall = ({ channelName, appId, token, onEndCall }) => {
                     onClick={toggleVideo}
                     title={isVideoOff ? 'Turn on camera' : 'Turn off camera'}
                 >
-                    {isVideoOff ? <VideoOff size={24} /> : <Video size={24} />}
+                    {isVideoOff ? <VideoOff size={32} /> : <Video size={32} />}
                 </button>
 
                 <button

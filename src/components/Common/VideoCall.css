@@ -95,6 +95,12 @@
     background: #374151;
 }
 
+.control-btn svg {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+}
+
 .control-btn:hover {
     background: #4b5563;
 }
@@ -111,6 +117,11 @@
     background: #ef4444;
     width: 64px;
     height: 64px;
+}
+
+.control-btn.end-call svg {
+    width: 24px;
+    height: 24px;
 }
 
 .control-btn.end-call:hover {
