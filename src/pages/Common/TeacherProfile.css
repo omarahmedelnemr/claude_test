@@ -157,6 +157,8 @@
     cursor: pointer;
     transition: all 0.15s ease;
     box-shadow: none;
+    border-radius: 0px ;
+
 }
 
 .tp-tab:hover {
