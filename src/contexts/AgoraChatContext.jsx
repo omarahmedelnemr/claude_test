@@ -172,14 +172,14 @@ export const AgoraChatProvider = ({ children }) => {
         return result;
     }, [isConnected, chatUsername]);
 
-    const fetchHistory = useCallback(async (targetUsername, cursor = '') => {
+    const fetchHistory = useCallback(async (targetUsername, cursor = '', pageSize = 10) => {
         if (!connectionRef.current) return { messages: [], cursor: '', isLast: true };
 
         try {
             const result = await connectionRef.current.getHistoryMessages({
                 targetId: targetUsername,
                 chatType: 'singleChat',
-                pageSize: 20,
+                pageSize: pageSize,
                 cursor: cursor,
             });
 

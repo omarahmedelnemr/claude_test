@@ -21,6 +21,9 @@
     grid-template-columns: 350px 1fr;
     gap: 0;
     min-height: calc(100vh - 300px);
+    height: calc(100vh - 300px);
+    max-height: calc(100vh - 300px);
+    overflow: hidden;
 }
 
 .messaging-sidebar {
@@ -174,6 +177,9 @@
     justify-content: space-between;
     padding: 0;
     border-radius: 0px;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .chat-header {
@@ -234,15 +240,32 @@
 }
 
 .chat-messages {
-    flex: 1;
+    flex: 1 1 0;
     padding: 1.5em;
     overflow-y: auto;
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
     gap: 1em;
-    max-height: calc(100vh - 400px);
-    min-height: 400px;
+    min-height: 0;
+    max-height: 100%;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+}
+
+/* Disable smooth scroll on initial load to prevent visible scrolling */
+.chat-messages.initial-load {
+    scroll-behavior: auto;
+}
+
+.chat-messages:not(.initial-load) {
+    scroll-behavior: smooth;
+}
+
+.messages-spacer {
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-shrink: 1;
 }
 
 .message {
@@ -279,6 +302,9 @@
     color: white;
     border-radius: 12px 12px 4px 12px;
     align-items: flex-end;
+}
+.message.sent .message-content p {
+    color: white;
 }
 
 .message-content p {

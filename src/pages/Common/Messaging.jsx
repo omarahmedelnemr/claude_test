@@ -23,6 +23,7 @@ const Messaging = () => {
     const messagesContainerRef = useRef(null);
     const [loadingMore, setLoadingMore] = useState(false);
     const [paginationState, setPaginationState] = useState({}); // { contactId: { cursor, isLast } }
+    const isInitialLoadRef = useRef({}); // Track initial load per contact
 
     // Load contacts
     useEffect(() => {
@@ -42,8 +43,12 @@ const Messaging = () => {
     // Load message history when selecting a contact
     useEffect(() => {
         if (selectedContact && isConnected) {
+            // Mark as initial load for this contact
+            isInitialLoadRef.current[selectedContact.id] = true;
+            
             const loadInitialMessages = async () => {
-                const result = await fetchHistory(selectedContact.id);
+                // Load only 10 messages initially
+                const result = await fetchHistory(selectedContact.id, '', 10);
                 setPaginationState(prev => ({
                     ...prev,
                     [selectedContact.id]: {
@@ -59,11 +64,34 @@ const Messaging = () => {
 
     // Auto-scroll to bottom on new messages (only if not loading older messages)
     useEffect(() => {
-        if (!loadingMore && selectedContact) {
-            // Small delay to ensure DOM is updated
-            setTimeout(() => {
-                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-            }, 100);
+        if (!loadingMore && selectedContact && messagesContainerRef.current) {
+            const container = messagesContainerRef.current;
+            const contactId = selectedContact.id;
+            const isInitialLoad = isInitialLoadRef.current[contactId];
+            const contactMessages = messages[contactId] || [];
+            
+            // Only scroll if there are messages
+            if (contactMessages.length > 0) {
+                if (isInitialLoad) {
+                    // On initial load, scroll immediately to bottom without animation
+                    // Use requestAnimationFrame for immediate scroll before paint
+                    requestAnimationFrame(() => {
+                        if (messagesContainerRef.current) {
+                            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+                            isInitialLoadRef.current[contactId] = false;
+                        }
+                    });
+                } else {
+                    // For subsequent messages, check if user is near bottom
+                    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+                    if (isNearBottom) {
+                        // Use smooth scroll for new messages if user is near bottom
+                        setTimeout(() => {
+                            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                        }, 100);
+                    }
+                }
+            }
         }
     }, [messages, selectedContact, loadingMore]);
 
@@ -83,14 +111,26 @@ const Messaging = () => {
     const handleStartVideoCall = async () => {
         if (!selectedContact) return;
         try {
-            const sessionData = await agoraService.createVideoSession(selectedContact.id);
-            setVideoSessionData(sessionData);
-            setShowVideoCall(true);
-            // Notify the other user via chat message
-            await sendMessage(
-                selectedContact.id,
-                `📹 Video call started. Join channel: ${sessionData.channelName}`
-            ).catch(() => {});
+            // First, check if there's an active session with this contact
+            const activeSession = await agoraService.getActiveVideoSession();
+            
+            if (activeSession && 
+                (activeSession.initiatorID === selectedContact.id || 
+                 activeSession.targetUserID === selectedContact.id)) {
+                // Join existing session - backend already returns token and appId
+                setVideoSessionData(activeSession);
+                setShowVideoCall(true);
+            } else {
+                // Create new session
+                const sessionData = await agoraService.createVideoSession(selectedContact.id);
+                setVideoSessionData(sessionData);
+                setShowVideoCall(true);
+                // Notify the other user via chat message
+                await sendMessage(
+                    selectedContact.id,
+                    `📹 Video call started. Join channel: ${sessionData.channelName}`
+                ).catch(() => {});
+            }
         } catch (error) {
             console.error("Failed to start video call:", error);
         }
@@ -98,8 +138,20 @@ const Messaging = () => {
 
     const handleJoinVideoCall = async (channelName) => {
         try {
-            const tokenData = await agoraService.getRtcToken(channelName);
-            setVideoSessionData(tokenData);
+            // First, check if there's an active session
+            const activeSession = await agoraService.getActiveVideoSession();
+            
+            if (activeSession && activeSession.channelName === channelName) {
+                // Use the active session - backend already returns token and appId
+                setVideoSessionData(activeSession);
+            } else {
+                // Generate token for the provided channel name (fallback)
+                const tokenData = await agoraService.getRtcToken(channelName);
+                setVideoSessionData({
+                    ...tokenData,
+                    channelName: channelName
+                });
+            }
             setShowVideoCall(true);
         } catch (error) {
             console.error("Failed to join video call:", error);
@@ -160,15 +212,17 @@ const Messaging = () => {
     // Handle infinite scroll up
     const handleScroll = async (e) => {
         const container = e.target;
-        // Check if scrolled to top (within 50px)
-        if (container.scrollTop <= 50 && !loadingMore && selectedContact) {
+        // Check if scrolled to top (within 100px) for better trigger area
+        if (container.scrollTop <= 100 && !loadingMore && selectedContact) {
             const state = paginationState[selectedContact.id];
             if (state && !state.isLast && state.cursor) {
                 setLoadingMore(true);
                 const previousScrollHeight = container.scrollHeight;
+                const previousScrollTop = container.scrollTop;
                 
                 try {
-                    const result = await fetchHistory(selectedContact.id, state.cursor);
+                    // Load 15 more messages when scrolling up
+                    const result = await fetchHistory(selectedContact.id, state.cursor, 15);
                     setPaginationState(prev => ({
                         ...prev,
                         [selectedContact.id]: {
@@ -178,10 +232,12 @@ const Messaging = () => {
                     }));
                     
                     // Maintain scroll position after loading older messages
+                    // Wait for DOM to update
                     setTimeout(() => {
                         const newScrollHeight = container.scrollHeight;
-                        container.scrollTop = newScrollHeight - previousScrollHeight;
-                    }, 50);
+                        const heightDifference = newScrollHeight - previousScrollHeight;
+                        container.scrollTop = previousScrollTop + heightDifference;
+                    }, 100);
                 } catch (error) {
                     console.error("Failed to load more messages:", error);
                 } finally {
@@ -300,10 +356,11 @@ const Messaging = () => {
                             </div>
 
                             <div 
-                                className="chat-messages"
+                                className={`chat-messages ${isInitialLoadRef.current[selectedContact?.id] ? 'initial-load' : ''}`}
                                 ref={messagesContainerRef}
                                 onScroll={handleScroll}
                             >
+                                <div className="messages-spacer"></div>
                                 {loadingMore && (
                                     <div className="loading-more-messages">
                                         <p>Loading older messages...</p>
