@@ -20,6 +20,9 @@ const Messaging = () => {
     const [showVideoCall, setShowVideoCall] = useState(false);
     const [videoSessionData, setVideoSessionData] = useState(null);
     const messagesEndRef = useRef(null);
+    const messagesContainerRef = useRef(null);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [paginationState, setPaginationState] = useState({}); // { contactId: { cursor, isLast } }
 
     // Load contacts
     useEffect(() => {
@@ -39,15 +42,30 @@ const Messaging = () => {
     // Load message history when selecting a contact
     useEffect(() => {
         if (selectedContact && isConnected) {
-            fetchHistory(selectedContact.id);
+            const loadInitialMessages = async () => {
+                const result = await fetchHistory(selectedContact.id);
+                setPaginationState(prev => ({
+                    ...prev,
+                    [selectedContact.id]: {
+                        cursor: result.cursor,
+                        isLast: result.isLast
+                    }
+                }));
+            };
+            loadInitialMessages();
             clearUnread(selectedContact.id);
         }
-    }, [selectedContact, isConnected]);
+    }, [selectedContact, isConnected, fetchHistory, clearUnread]);
 
-    // Auto-scroll to bottom on new messages
+    // Auto-scroll to bottom on new messages (only if not loading older messages)
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, selectedContact]);
+        if (!loadingMore && selectedContact) {
+            // Small delay to ensure DOM is updated
+            setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        }
+    }, [messages, selectedContact, loadingMore]);
 
     const handleSendMessage = async () => {
         if (!messageText.trim() || !selectedContact || sending) return;
@@ -137,6 +155,40 @@ const Messaging = () => {
     const extractChannelName = (text) => {
         const match = text.match(/Join channel: (.+)$/);
         return match ? match[1] : null;
+    };
+
+    // Handle infinite scroll up
+    const handleScroll = async (e) => {
+        const container = e.target;
+        // Check if scrolled to top (within 50px)
+        if (container.scrollTop <= 50 && !loadingMore && selectedContact) {
+            const state = paginationState[selectedContact.id];
+            if (state && !state.isLast && state.cursor) {
+                setLoadingMore(true);
+                const previousScrollHeight = container.scrollHeight;
+                
+                try {
+                    const result = await fetchHistory(selectedContact.id, state.cursor);
+                    setPaginationState(prev => ({
+                        ...prev,
+                        [selectedContact.id]: {
+                            cursor: result.cursor,
+                            isLast: result.isLast
+                        }
+                    }));
+                    
+                    // Maintain scroll position after loading older messages
+                    setTimeout(() => {
+                        const newScrollHeight = container.scrollHeight;
+                        container.scrollTop = newScrollHeight - previousScrollHeight;
+                    }, 50);
+                } catch (error) {
+                    console.error("Failed to load more messages:", error);
+                } finally {
+                    setLoadingMore(false);
+                }
+            }
+        }
     };
 
     return (
@@ -247,8 +299,17 @@ const Messaging = () => {
                                 </div>
                             </div>
 
-                            <div className="chat-messages">
-                                {contactMessages.length === 0 && (
+                            <div 
+                                className="chat-messages"
+                                ref={messagesContainerRef}
+                                onScroll={handleScroll}
+                            >
+                                {loadingMore && (
+                                    <div className="loading-more-messages">
+                                        <p>Loading older messages...</p>
+                                    </div>
+                                )}
+                                {contactMessages.length === 0 && !loadingMore && (
                                     <div className="empty-state small">
                                         <p>No messages yet. Start the conversation!</p>
                                     </div>

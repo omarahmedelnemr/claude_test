@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Search, Star, Clock, DollarSign, ArrowLeft, Calendar, Check } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Search, Star, Clock, DollarSign, ArrowLeft, Calendar, Check, Loader2 } from 'lucide-react';
 import appointmentService from '../../services/appointmentService';
 import './AppointmentBooking.css';
 
 const AppointmentBooking = () => {
+    const navigate = useNavigate();
     const [teachers, setTeachers] = useState([]);
     const [selectedTeacher, setSelectedTeacher] = useState(null);
     const [teacherProfile, setTeacherProfile] = useState(null);
@@ -111,9 +112,8 @@ const AppointmentBooking = () => {
                 startTime24,
                 description
             );
-            setBookingSuccess(true);
-            setSelectedSlot(null);
-            setDescription('');
+            // Redirect immediately after successful booking
+            navigate('/appointments?tab=upcoming');
         } catch (err) {
             setError(err.message || err.data || 'Failed to book appointment');
         } finally {
@@ -150,6 +150,17 @@ const AppointmentBooking = () => {
     if (selectedTeacher) {
         return (
             <div className="container booking-page">
+                {/* Loading Overlay */}
+                {booking && (
+                    <div className="booking-loading-overlay">
+                        <div className="booking-loading-content">
+                            <Loader2 size={48} className="spinner" />
+                            <h3>Booking Appointment...</h3>
+                            <p>Please wait while we confirm your appointment.</p>
+                        </div>
+                    </div>
+                )}
+
                 <button className="back-btn" onClick={handleBack}>
                     <ArrowLeft size={18} />
                     Back to Teachers

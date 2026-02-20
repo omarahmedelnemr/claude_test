@@ -88,6 +88,12 @@ export const appointmentService = {
         return response.data;
     },
 
+    // Teacher - Decline appointment
+    declineAppointment: async (appointmentID) => {
+        const response = await api.post('/appointments/teacher/decline', { appointmentID });
+        return response.data;
+    },
+
     // Reviews
     getTeacherReviews: async (teacherID, params = {}) => {
         const response = await api.get('/appointments/student/teacher-reviews', { params: { teacherID, ...params } });
@@ -96,6 +102,16 @@ export const appointmentService = {
 
     postReview: async (data) => {
         const response = await api.post('/appointments/student/teacher-review', data);
+        return response.data;
+    },
+
+    // Rate appointment
+    rateAppointment: async (appointmentID, rating, ratingComment = '') => {
+        const response = await api.post('/appointments/student/rate', { 
+            appointmentID, 
+            rating, 
+            ratingComment 
+        });
         return response.data;
     },
 };

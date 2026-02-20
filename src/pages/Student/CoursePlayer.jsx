@@ -36,6 +36,7 @@ const CoursePlayer = () => {
   const [quizAnswers, setQuizAnswers] = useState({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [quizScore, setQuizScore] = useState(null);
+  const [isRetaking, setIsRetaking] = useState(false);
   const [progress, setProgress] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -807,6 +808,57 @@ const CoursePlayer = () => {
     }));
   };
 
+  const handleRetakeQuiz = async () => {
+    if (!selectedContent || !currentUser) return;
+
+    try {
+      setSubmitting(true);
+      
+      // Call backend to delete submission and get form questions
+      const retakeData = await courseService.retakeQuiz({
+        contentID: selectedContent.id,
+        studentID: currentUser.id
+      });
+      
+      // Set retaking flag to prevent reloading submitted answers
+      setIsRetaking(true);
+      
+      // Reset quiz state
+      setQuizSubmitted(false);
+      setQuizScore(null);
+      setQuizAnswers({});
+      
+      // Update form questions with clean questions from backend
+      if (retakeData.questions) {
+        const questionsArray = Array.isArray(retakeData.questions) ? retakeData.questions : [];
+        setFormQuestions(prev => ({
+          ...prev,
+          [selectedContent.id]: questionsArray
+        }));
+        setFormQuestionsLoaded(prev => ({
+          ...prev,
+          [selectedContent.id]: true
+        }));
+      }
+      
+      // Refresh progress to update submission status
+      const progressResponse = await courseService.getCourseProgress(courseID, currentUser.id);
+      const progressData = progressResponse.lectures || (Array.isArray(progressResponse) ? progressResponse : []);
+      const overallProgress = progressResponse.overallProgress !== undefined ? progressResponse.overallProgress : 0;
+      setProgress({
+        overallProgress: overallProgress,
+        lectures: progressData
+      });
+      
+      setSubmitting(false);
+    } catch (err) {
+      console.error('Error retaking quiz:', err);
+      setError('Failed to retake quiz. Please try again.');
+      setIsRetaking(false);
+      setSubmitting(false);
+    }
+  };
+
   const handleQuizSubmit = async () => {
     if (!selectedContent || !currentUser) return;
 
@@ -834,6 +886,7 @@ const CoursePlayer = () => {
       
       setQuizScore(score);
       setQuizSubmitted(true);
+      setIsRetaking(false); // Reset retaking flag after submission
       
       // Store grading results for display
       if (submissionData.gradingResults) {
@@ -1159,8 +1212,8 @@ const CoursePlayer = () => {
                 if (content && content.submission) {
                   submissionData = content.submission;
                   submittedAnswers = content.submission.answers || {};
-                  // Load submitted answers into quizAnswers state if not already loaded
-                  if (Object.keys(quizAnswers).length === 0) {
+                  // Load submitted answers into quizAnswers state if not already loaded and not retaking
+                  if (Object.keys(quizAnswers).length === 0 && !isRetaking) {
                     setQuizAnswers(submittedAnswers);
                   }
                   break;
@@ -1264,13 +1317,57 @@ const CoursePlayer = () => {
                       {question.questionType === 'multiple_choice' && question.options && (
                         <div className="options">
                           {question.options.map((option, optIdx) => {
-                            const isSelected = submittedAnswer === optIdx || quizAnswers[question.id] === optIdx;
-                            const isCorrectOption = correctAnswer === optIdx;
+                            // Normalize submittedAnswer to index for comparison
+                            let normalizedSubmitted = submittedAnswer;
+                            if (typeof submittedAnswer !== 'number' && submittedAnswer !== undefined && submittedAnswer !== null && question.options) {
+                              // If submittedAnswer is text, find matching index
+                              const submittedText = String(submittedAnswer).trim().toLowerCase();
+                              const matchingIdx = question.options.findIndex(opt => 
+                                String(opt).trim().toLowerCase() === submittedText
+                              );
+                              if (matchingIdx !== -1) {
+                                normalizedSubmitted = matchingIdx;
+                              }
+                            }
+                            
+                            const isSelected = normalizedSubmitted === optIdx || quizAnswers[question.id] === optIdx;
+                            
+                            // Normalize correctAnswer to index for comparison
+                            // correctAnswer might be stored as index (number) or option text (string)
+                            let isCorrectOption = false;
+                            if (correctAnswer !== undefined && correctAnswer !== null && question.options) {
+                              if (typeof correctAnswer === 'number') {
+                                // Already an index
+                                isCorrectOption = correctAnswer === optIdx;
+                              } else if (typeof correctAnswer === 'string') {
+                                // Compare with option text
+                                const optionText = String(question.options[optIdx]).trim().toLowerCase();
+                                const correctText = String(correctAnswer).trim().toLowerCase();
+                                isCorrectOption = optionText === correctText;
+                                // Also check if it matches the index as string
+                                if (!isCorrectOption) {
+                                  isCorrectOption = String(optIdx) === correctText;
+                                }
+                              } else {
+                                // Fallback: direct comparison
+                                isCorrectOption = correctAnswer === optIdx;
+                              }
+                            }
+                            
+                            // Determine class: correct answer should be green, selected incorrect should be red
+                            let resultClass = '';
+                            if (showResults) {
+                              if (isCorrectOption) {
+                                resultClass = 'correct-answer'; // Correct answer is always green
+                              } else if (isSelected && !isCorrectOption) {
+                                resultClass = 'incorrect-answer'; // Selected incorrect answer is red
+                              }
+                            }
                             
                             return (
                               <label 
                                 key={optIdx} 
-                                className={`option-label ${showResults ? 'disabled' : ''} ${showResults && isSelected && isCorrectOption ? 'correct-answer' : ''} ${showResults && isSelected && !isCorrectOption ? 'incorrect-answer' : ''}`}
+                                className={`option-label ${showResults ? 'disabled' : ''} ${resultClass}`}
                               >
                                 <input
                                   type="radio"
@@ -1295,15 +1392,85 @@ const CoursePlayer = () => {
                         <div className="options">
                           {question.options.map((option, optIdx) => {
                             const currentAnswers = submittedAnswer || quizAnswers[question.id];
-                            const isArray = Array.isArray(currentAnswers);
-                            const isChecked = isArray && currentAnswers.includes(optIdx);
-                            const correctAnswers = Array.isArray(correctAnswer) ? correctAnswer : (correctAnswer !== undefined && correctAnswer !== null ? [correctAnswer] : []);
-                            const isCorrectOption = correctAnswers.includes(optIdx);
+                            
+                            // Normalize currentAnswers to array of indices
+                            let normalizedAnswers = [];
+                            if (Array.isArray(currentAnswers)) {
+                              normalizedAnswers = currentAnswers.map(ans => {
+                                if (typeof ans === 'number') {
+                                  return ans; // Already an index
+                                } else if (typeof ans === 'string' && question.options) {
+                                  // Find index of option matching the text
+                                  const idx = question.options.findIndex(opt => 
+                                    String(opt).trim().toLowerCase() === String(ans).trim().toLowerCase()
+                                  );
+                                  return idx !== -1 ? idx : null;
+                                }
+                                return null;
+                              }).filter(idx => idx !== null);
+                            } else if (currentAnswers !== undefined && currentAnswers !== null) {
+                              // Single value - normalize to index
+                              if (typeof currentAnswers === 'number') {
+                                normalizedAnswers = [currentAnswers];
+                              } else if (typeof currentAnswers === 'string' && question.options) {
+                                const idx = question.options.findIndex(opt => 
+                                  String(opt).trim().toLowerCase() === String(currentAnswers).trim().toLowerCase()
+                                );
+                                if (idx !== -1) {
+                                  normalizedAnswers = [idx];
+                                }
+                              }
+                            }
+                            
+                            const isChecked = normalizedAnswers.includes(optIdx);
+                            
+                            // Normalize correctAnswer to array of indices
+                            // correctAnswer might be stored as array of indices, array of text, or single value
+                            let correctAnswersArray = [];
+                            if (Array.isArray(correctAnswer)) {
+                              // Normalize each answer to index
+                              correctAnswersArray = correctAnswer.map(ans => {
+                                if (typeof ans === 'number') {
+                                  return ans; // Already an index
+                                } else if (typeof ans === 'string' && question.options) {
+                                  // Find index of option matching the text
+                                  const idx = question.options.findIndex(opt => 
+                                    String(opt).trim().toLowerCase() === String(ans).trim().toLowerCase()
+                                  );
+                                  return idx !== -1 ? idx : null;
+                                }
+                                return null;
+                              }).filter(idx => idx !== null);
+                            } else if (correctAnswer !== undefined && correctAnswer !== null) {
+                              // Single value - normalize to index
+                              if (typeof correctAnswer === 'number') {
+                                correctAnswersArray = [correctAnswer];
+                              } else if (typeof correctAnswer === 'string' && question.options) {
+                                const idx = question.options.findIndex(opt => 
+                                  String(opt).trim().toLowerCase() === String(correctAnswer).trim().toLowerCase()
+                                );
+                                if (idx !== -1) {
+                                  correctAnswersArray = [idx];
+                                }
+                              }
+                            }
+                            
+                            const isCorrectOption = correctAnswersArray.includes(optIdx);
+                            
+                            // Determine class: correct answer should be green, selected incorrect should be red
+                            let resultClass = '';
+                            if (showResults) {
+                              if (isCorrectOption) {
+                                resultClass = 'correct-answer'; // Correct answer is always green
+                              } else if (isChecked && !isCorrectOption) {
+                                resultClass = 'incorrect-answer'; // Selected incorrect answer is red
+                              }
+                            }
                             
                             return (
                               <label 
                                 key={optIdx} 
-                                className={`option-label ${showResults ? 'disabled' : ''} ${showResults && isChecked && isCorrectOption ? 'correct-answer' : ''} ${showResults && isChecked && !isCorrectOption ? 'incorrect-answer' : ''}`}
+                                className={`option-label ${showResults ? 'disabled' : ''} ${resultClass}`}
                               >
                                 <input
                                   type="checkbox"
@@ -1331,24 +1498,6 @@ const CoursePlayer = () => {
                         </div>
                       )}
 
-                      {(question.questionType === 'short_answer' || question.questionType === 'long_answer') && (
-                        <div>
-                          <textarea
-                            placeholder="Your answer"
-                            value={submittedAnswer || quizAnswers[question.id] || ''}
-                            onChange={(e) => handleQuizAnswer(question.id, e.target.value)}
-                            className="text-answer"
-                            rows={question.questionType === 'long_answer' ? 5 : 2}
-                            required={question.required && !showResults}
-                            disabled={showResults}
-                          />
-                          {showResults && correctAnswer !== undefined && correctAnswer !== null && (
-                            <div className="correct-answer-display">
-                              <strong>Correct Answer:</strong> {correctAnswer}
-                            </div>
-                          )}
-                        </div>
-                      )}
 
                       {question.questionType === 'true_false' && (
                         <div className="options">
@@ -1397,6 +1546,16 @@ const CoursePlayer = () => {
                 disabled={submitting}
               >
                 {submitting ? 'Submitting...' : 'Submit Quiz'}
+              </button>
+            )}
+
+            {showResults && selectedContent.allowRetake && (
+              <button
+                onClick={handleRetakeQuiz}
+                className="retake-btn"
+                disabled={submitting}
+              >
+                Retake Quiz
               </button>
             )}
           </div>

@@ -2,6 +2,130 @@
     margin-bottom: 1.5em;
 }
 
+/* Rating Styles */
+.appointment-rating {
+    margin-top: 0.5em;
+}
+
+.rating-display {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.rate-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.25em;
+    padding: 0.5em 1em;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background 0.2s ease;
+}
+
+.rate-btn:hover {
+    background: var(--primary-dark);
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.rating-modal {
+    background: white;
+    padding: 2em;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.rating-modal h3 {
+    margin: 0 0 0.5em 0;
+    color: var(--text-dark);
+}
+
+.rating-modal p {
+    margin: 0 0 1.5em 0;
+    color: var(--text-light);
+}
+
+.rating-stars-input {
+    display: flex;
+    gap: 0.5em;
+    justify-content: center;
+    margin: 1.5em 0;
+}
+
+.rating-comment {
+    width: 100%;
+    padding: 0.75em;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 1em;
+    margin-bottom: 1.5em;
+    resize: vertical;
+}
+
+.rating-comment:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1em;
+    justify-content: flex-end;
+}
+
+.modal-actions .btn-primary,
+.modal-actions .btn-secondary {
+    padding: 0.75em 1.5em;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.modal-actions .btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.modal-actions .btn-primary:hover:not(:disabled) {
+    background: var(--primary-dark);
+}
+
+.modal-actions .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.modal-actions .btn-secondary {
+    background: #f0f0f0;
+    color: var(--text-dark);
+}
+
+.modal-actions .btn-secondary:hover {
+    background: #e0e0e0;
+}
+
 .tabs {
     display: flex;
     gap: 0;
@@ -177,6 +301,29 @@
 
 .cancel-btn:hover {
     background: var(--error-color);
+    color: white;
+    transform: none;
+    box-shadow: none;
+}
+
+.decline-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+    padding: 0.5em 0.75em;
+    font-size: 0.8em;
+    background: transparent;
+    color: #ff9800;
+    border: 1px solid #ff9800;
+    box-shadow: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.decline-btn:hover {
+    background: #ff9800;
     color: white;
     transform: none;
     box-shadow: none;

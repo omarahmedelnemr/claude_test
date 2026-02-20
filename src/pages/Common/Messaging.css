@@ -1,5 +1,12 @@
 .messaging-page {
-    max-width: 1400px;
+    max-width: 100%;
+    width: 100%;
+}
+
+.messaging-page.container {
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
 }
 
 .messaging-page .page-header {
@@ -12,7 +19,7 @@
 .messaging-container {
     display: grid;
     grid-template-columns: 350px 1fr;
-    gap: 2em;
+    gap: 0;
     min-height: calc(100vh - 300px);
 }
 
@@ -20,6 +27,7 @@
     padding: 0;
     display: flex;
     flex-direction: column;
+    border-radius: 0px;
 }
 
 .search-box {
@@ -163,7 +171,9 @@
 .messaging-main {
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
     padding: 0;
+    border-radius: 0px;
 }
 
 .chat-header {
@@ -231,7 +241,8 @@
     flex-direction: column;
     justify-content: flex-end;
     gap: 1em;
-    max-height: 500px;
+    max-height: calc(100vh - 400px);
+    min-height: 400px;
 }
 
 .message {
@@ -372,6 +383,13 @@
 
 .join-call-btn:hover {
     background: var(--primary-dark);
+}
+
+.loading-more-messages {
+    text-align: center;
+    padding: 1em;
+    color: var(--text-light);
+    font-size: 0.9em;
 }
 
 @media (max-width: 1024px) {

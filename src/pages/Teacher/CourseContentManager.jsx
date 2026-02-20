@@ -82,8 +82,8 @@ const CourseContentManager = () => {
     fileSize: 0,
     estimatedViewingTime: 0,
     articleContent: '',
-    totalPoints: 0,
-    hasAnswerModel: true
+    hasAnswerModel: true,
+    allowRetake: false
   });
   const [isDurationManuallySet, setIsDurationManuallySet] = useState(false);
   const SECONDS_PER_WORD = 0.5; // Default: 0.5 seconds per word
@@ -364,8 +364,8 @@ const CourseContentManager = () => {
         fileSize: content.fileSize || 0,
         estimatedViewingTime: content.estimatedViewingTime || content.duration || 0, // Use estimatedViewingTime, fallback to duration for backward compatibility
         articleContent: content.articleContent || '',
-        totalPoints: content.totalPoints || 0,
-        hasAnswerModel: content.hasAnswerModel !== undefined ? content.hasAnswerModel : true
+        hasAnswerModel: content.hasAnswerModel !== undefined ? content.hasAnswerModel : true,
+        allowRetake: content.allowRetake !== undefined ? content.allowRetake : false
       });
       // If editing article with existing estimatedViewingTime, consider it manually set
       if (content.contentType === 'article' && content.estimatedViewingTime) {
@@ -393,8 +393,8 @@ const CourseContentManager = () => {
         fileSize: 0,
         estimatedViewingTime: 0,
         articleContent: '',
-        totalPoints: 0,
-        hasAnswerModel: true
+        hasAnswerModel: true,
+        allowRetake: false
       });
       setIsDurationManuallySet(false);
       // Clear editor content
@@ -798,8 +798,10 @@ const CourseContentManager = () => {
         // Set estimated viewing time (duration in minutes) for articles
         contentData.estimatedViewingTime = parseInt(contentForm.estimatedViewingTime) || 1;
       } else if (contentForm.contentType === 'form') {
-        contentData.totalPoints = parseInt(contentForm.totalPoints) || 0;
-        contentData.hasAnswerModel = contentForm.hasAnswerModel;
+        // totalPoints is automatically calculated from question points, don't send it
+        // hasAnswerModel is always true - all forms are auto-marked
+        contentData.hasAnswerModel = true;
+        contentData.allowRetake = contentForm.allowRetake;
       }
 
       let savedContent;
@@ -1600,28 +1602,21 @@ const CourseContentManager = () => {
 
               {contentForm.contentType === 'form' && (
                 <>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="total-points">Total Points</label>
+                  <div className="form-group">
+                    <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '1em' }}>
+                      All forms are automatically graded by default. Total points will be automatically calculated from the sum of all question points.
+                    </p>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="allow-retake" className="checkbox-label">
                       <input
-                        type="number"
-                        id="total-points"
-                        value={contentForm.totalPoints}
-                        onChange={(e) => setContentForm({ ...contentForm, totalPoints: e.target.value })}
-                        min="0"
+                        type="checkbox"
+                        id="allow-retake"
+                        checked={contentForm.allowRetake}
+                        onChange={(e) => setContentForm({ ...contentForm, allowRetake: e.target.checked })}
                       />
-                    </div>
-                    <div className="form-group">
-                      <label htmlFor="has-answer-model" className="checkbox-label">
-                        <input
-                          type="checkbox"
-                          id="has-answer-model"
-                          checked={contentForm.hasAnswerModel}
-                          onChange={(e) => setContentForm({ ...contentForm, hasAnswerModel: e.target.checked })}
-                        />
-                        <span>Has Answer Model (Auto-correction)</span>
-                      </label>
-                    </div>
+                      <span>Allow Retake</span>
+                    </label>
                   </div>
                   {editingContent && (
                     <div className="form-group">

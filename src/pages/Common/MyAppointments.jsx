@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSearchParams } from 'react-router-dom';
-import { Calendar, Clock, Video, X, User } from 'lucide-react';
+import { Calendar, Clock, Video, X, User, Star } from 'lucide-react';
 import appointmentService from '../../services/appointmentService';
 import VideoCall from '../../components/Common/VideoCall';
 import Pagination from '../../components/Common/Pagination';
@@ -19,6 +19,10 @@ const MyAppointments = () => {
     const [showVideoCall, setShowVideoCall] = useState(false);
     const [videoData, setVideoData] = useState(null);
     const [joiningId, setJoiningId] = useState(null);
+    const [ratingAppointment, setRatingAppointment] = useState(null);
+    const [rating, setRating] = useState(0);
+    const [ratingComment, setRatingComment] = useState('');
+    const [submittingRating, setSubmittingRating] = useState(false);
     
     // Separate pagination state for upcoming and history - initialize from URL
     const [upcomingPage, setUpcomingPage] = useState(() => 
@@ -181,6 +185,17 @@ const MyAppointments = () => {
         }
     };
 
+    const handleDecline = async (appointmentID) => {
+        if (!confirm('Decline this appointment? The student will be notified.')) return;
+        try {
+            await appointmentService.declineAppointment(appointmentID);
+            await loadAppointments();
+        } catch (err) {
+            console.error("Failed to decline:", err);
+            alert('Failed to decline appointment. Please try again.');
+        }
+    };
+
     const formatDate = (dateStr) => {
         const date = new Date(dateStr);
         return date.toLocaleDateString('en-US', {
@@ -211,6 +226,31 @@ const MyAppointments = () => {
     const getOtherPerson = (appointment) => {
         if (role === 'teacher') return appointment.student;
         return appointment.teacher;
+    };
+
+    const handleRateAppointment = (appointment) => {
+        setRatingAppointment(appointment);
+        setRating(appointment.rating || 0);
+        setRatingComment(appointment.ratingComment || '');
+    };
+
+    const handleSubmitRating = async () => {
+        if (!ratingAppointment || rating === 0) return;
+        
+        setSubmittingRating(true);
+        try {
+            await appointmentService.rateAppointment(ratingAppointment.id, rating, ratingComment);
+            // Reload appointments to show updated rating
+            loadAppointments();
+            setRatingAppointment(null);
+            setRating(0);
+            setRatingComment('');
+        } catch (err) {
+            console.error('Error rating appointment:', err);
+            alert('Failed to submit rating. Please try again.');
+        } finally {
+            setSubmittingRating(false);
+        }
     };
 
     const currentList = activeTab === 'upcoming' ? appointments : history;
@@ -284,9 +324,36 @@ const MyAppointments = () => {
                                         </span>
                                     </div>
                                     {activeTab === 'history' && (
-                                        <span className={`status-badge ${appt.status}`}>
-                                            {appt.status}
-                                        </span>
+                                        <>
+                                            <span className={`status-badge ${appt.status}`}>
+                                                {appt.status}
+                                            </span>
+                                            {role === 'student' && appt.status === 'completed' && (
+                                                <div className="appointment-rating">
+                                                    {appt.rating ? (
+                                                        <div className="rating-display">
+                                                            {[...Array(5)].map((_, i) => (
+                                                                <Star
+                                                                    key={i}
+                                                                    size={16}
+                                                                    fill={i < appt.rating ? "#ff9800" : "none"}
+                                                                    color="#ff9800"
+                                                                />
+                                                            ))}
+                                                            <span>{appt.rating}/5</span>
+                                                        </div>
+                                                    ) : (
+                                                        <button
+                                                            className="rate-btn"
+                                                            onClick={() => handleRateAppointment(appt)}
+                                                        >
+                                                            <Star size={14} />
+                                                            Rate Appointment
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                                 <div className="appointment-card-actions">
@@ -308,6 +375,15 @@ const MyAppointments = () => {
                                                 >
                                                     <X size={14} />
                                                     Cancel
+                                                </button>
+                                            )}
+                                            {role === 'teacher' && (
+                                                <button
+                                                    className="decline-btn"
+                                                    onClick={() => handleDecline(appt.id)}
+                                                >
+                                                    <X size={14} />
+                                                    Decline
                                                 </button>
                                             )}
                                         </>
@@ -337,6 +413,57 @@ const MyAppointments = () => {
                     token={videoData.rtcToken}
                     onEndCall={handleEndCall}
                 />
+            )}
+
+            {/* Rating Modal */}
+            {ratingAppointment && (
+                <div className="modal-overlay" onClick={() => setRatingAppointment(null)}>
+                    <div className="modal-content rating-modal" onClick={(e) => e.stopPropagation()}>
+                        <h3>Rate Your Appointment</h3>
+                        <p>How would you rate your experience with {getOtherPerson(ratingAppointment)?.name}?</p>
+                        
+                        <div className="rating-stars-input">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                    key={star}
+                                    size={32}
+                                    fill={star <= rating ? "#ff9800" : "none"}
+                                    color="#ff9800"
+                                    style={{ cursor: 'pointer' }}
+                                    onClick={() => setRating(star)}
+                                />
+                            ))}
+                        </div>
+
+                        <textarea
+                            placeholder="Optional: Add a comment..."
+                            value={ratingComment}
+                            onChange={(e) => setRatingComment(e.target.value)}
+                            rows={4}
+                            className="rating-comment"
+                        />
+
+                        <div className="modal-actions">
+                            <button
+                                className="btn-secondary"
+                                onClick={() => {
+                                    setRatingAppointment(null);
+                                    setRating(0);
+                                    setRatingComment('');
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="btn-primary"
+                                onClick={handleSubmitRating}
+                                disabled={rating === 0 || submittingRating}
+                            >
+                                {submittingRating ? 'Submitting...' : 'Submit Rating'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

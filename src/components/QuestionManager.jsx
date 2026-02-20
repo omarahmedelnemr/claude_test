@@ -82,19 +82,12 @@ const QuestionManager = ({ contentID, teacherID, onClose, contentTitle }) => {
       const newForm = { ...prev, questionType: type };
       
       // Reset options and correct answer based on type
-      if (type === 'multiple_choice' || type === 'checkbox' || type === 'dropdown') {
+      if (type === 'multiple_choice' || type === 'checkbox') {
         newForm.options = prev.options && prev.options.length > 0 ? prev.options : ['', ''];
         newForm.correctAnswer = '';
       } else if (type === 'true_false') {
         newForm.options = [];
         newForm.correctAnswer = true;
-      } else if (type === 'linear_scale') {
-        newForm.options = [];
-        newForm.settings = { min: 1, max: 5 };
-        newForm.correctAnswer = null;
-      } else {
-        newForm.options = [];
-        newForm.correctAnswer = '';
       }
       
       return newForm;
@@ -131,8 +124,7 @@ const QuestionManager = ({ contentID, teacherID, onClose, contentTitle }) => {
     }
 
     if ((questionForm.questionType === 'multiple_choice' || 
-         questionForm.questionType === 'checkbox' || 
-         questionForm.questionType === 'dropdown') &&
+         questionForm.questionType === 'checkbox') &&
         questionForm.options.filter(opt => opt.trim()).length < 2) {
       setError('At least 2 options are required');
       return;
@@ -152,10 +144,9 @@ const QuestionManager = ({ contentID, teacherID, onClose, contentTitle }) => {
         required: questionForm.required,
       };
 
-      // Add options for multiple choice, checkbox, dropdown
+      // Add options for multiple choice and checkbox
       if (questionForm.questionType === 'multiple_choice' || 
-          questionForm.questionType === 'checkbox' || 
-          questionForm.questionType === 'dropdown') {
+          questionForm.questionType === 'checkbox') {
         questionData.options = questionForm.options.filter(opt => opt.trim());
       }
 
@@ -166,18 +157,8 @@ const QuestionManager = ({ contentID, teacherID, onClose, contentTitle }) => {
         questionData.correctAnswer = Array.isArray(questionForm.correctAnswer) 
           ? questionForm.correctAnswer 
           : [];
-      } else if (questionForm.questionType !== 'short_answer' && 
-                 questionForm.questionType !== 'long_answer' &&
-                 questionForm.questionType !== 'date' &&
-                 questionForm.questionType !== 'time' &&
-                 questionForm.questionType !== 'file_upload' &&
-                 questionForm.questionType !== 'linear_scale') {
+      } else if (questionForm.questionType === 'multiple_choice') {
         questionData.correctAnswer = questionForm.correctAnswer;
-      }
-
-      // Add settings for linear scale
-      if (questionForm.questionType === 'linear_scale' && questionForm.settings) {
-        questionData.settings = questionForm.settings;
       }
 
       if (editingQuestion) {
@@ -418,14 +399,7 @@ const QuestionManager = ({ contentID, teacherID, onClose, contentTitle }) => {
                 >
                   <option value="multiple_choice">Multiple Choice</option>
                   <option value="checkbox">Checkbox (Multiple Select)</option>
-                  <option value="short_answer">Short Answer</option>
-                  <option value="long_answer">Long Answer</option>
                   <option value="true_false">True/False</option>
-                  <option value="dropdown">Dropdown</option>
-                  <option value="linear_scale">Linear Scale</option>
-                  <option value="date">Date</option>
-                  <option value="time">Time</option>
-                  <option value="file_upload">File Upload</option>
                 </select>
               </div>
 

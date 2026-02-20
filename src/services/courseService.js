@@ -249,6 +249,18 @@ export const courseService = {
   },
 
   /**
+   * Retake a quiz by deleting submission and getting form questions
+   * @param {Object} retakeData - Retake data
+   * @param {string} retakeData.contentID - Content ID
+   * @param {string} retakeData.studentID - Student ID (optional - will be taken from session if not provided)
+   * @returns {Promise} API response with form questions
+   */
+  retakeQuiz: async (retakeData) => {
+    const response = await api.post('/courses/student/retake-quiz', retakeData);
+    return response.data;
+  },
+
+  /**
    * Update content viewing time and auto-complete if threshold met
    * @param {Object} timeData - Time tracking data
    * @param {string} timeData.contentID - Content ID
