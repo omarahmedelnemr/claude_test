@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import qaService from '../../services/qaService';
 import { Search, ThumbsUp, ChevronDown, ChevronUp, MessageSquare, Send, X, Loader2, AlertCircle, Trash2 } from 'lucide-react';
 import './QASection.css';
@@ -8,6 +8,7 @@ import './QASection.css';
 const QASection = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -69,10 +70,8 @@ const QASection = () => {
   const [deletingAnswer, setDeletingAnswer] = useState(null);
 
   useEffect(() => {
-    if (currentUser) {
-      fetchQuestions();
-    }
-  }, [currentUser, statusFilter, searchTerm, loadBlock]);
+    fetchQuestions();
+  }, [statusFilter, searchTerm, loadBlock]);
 
   const fetchQuestions = async () => {
     try {
@@ -84,7 +83,13 @@ const QASection = () => {
         status: statusFilter !== 'all' ? statusFilter : undefined,
       };
       
-      const response = await qaService.getQuestions(params);
+      const response = await qaService.getQuestions(params).catch((err) => {
+        // Handle guest mode - return empty array if unauthorized
+        if (err.isGuestMode) {
+          return { data: [], pagination: { hasNextPage: false } };
+        }
+        throw err;
+      });
       
       // Handle response format - could be array or object with data and pagination
       let questionsData = [];
@@ -170,7 +175,11 @@ const QASection = () => {
   const handleAddAnswer = async (questionID, e) => {
     e.preventDefault();
     const answerText = newAnswer[questionID];
-    if (!answerText?.trim() || !currentUser || currentUser.role !== 'teacher') return;
+    if (!answerText?.trim()) return;
+    if (!currentUser || currentUser.role !== 'teacher') {
+      navigate('/login');
+      return;
+    }
 
     try {
       setSubmittingAnswer(prev => ({ ...prev, [questionID]: true }));
@@ -192,7 +201,11 @@ const QASection = () => {
   };
 
   const handleMarkHelpful = async (answerID) => {
-    if (!currentUser || currentUser.role !== 'student') {
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+    if (currentUser.role !== 'student') {
       alert('Only students can mark answers as helpful.');
       return;
     }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import blogService from '../../services/blogService';
 import { Calendar, Eye, Heart, Loader2, MessageCircle, Plus, Trash2, Shield, Flag, AlertTriangle, CheckCircle, X, Search } from 'lucide-react';
@@ -54,6 +54,7 @@ const ReportedArticleRow = ({ report, onDecision }) => {
 const BlogList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   
   // Initialize from URL params or defaults
   const [page, setPage] = useState(() => parseInt(searchParams.get('page') || '1', 10));
@@ -271,7 +272,10 @@ const BlogList = () => {
   };
 
   const handleDeleteArticle = async (articleId) => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
     if (!window.confirm('Are you sure you want to delete this article? This action cannot be undone.')) return;
 
     try {

@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 import Login from './pages/Common/Login';
 import Signup from './pages/Common/Signup';
+import LandingPage from './pages/Common/LandingPage';
 import AdminDashboard from './pages/Admin/AdminDashboard';
 import SendNotification from './pages/Admin/SendNotification';
 import TeacherDashboard from './pages/Teacher/TeacherDashboard';
@@ -57,7 +58,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
       (userRole === 'admin' && normalizedAllowedRoles.includes('supervisor'));
     
     if (!roleMatches) {
-      return <Navigate to="/" replace />;
+      return <Navigate to="/dashboard" replace />;
     }
   }
 
@@ -99,6 +100,12 @@ const AppRoutes = () => {
 
   return (
     <Routes>
+      {/* Landing page - always accessible */}
+      <Route 
+        path="/landing" 
+        element={<LandingPage />}
+      />
+      
       <Route 
         path="/login" 
         element={
@@ -128,8 +135,19 @@ const AppRoutes = () => {
         } 
       />
 
+      {/* All routes with Layout */}
       <Route path="/" element={<Layout />}>
-        <Route index element={getDashboard()} />
+        <Route index element={
+          loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+              <Loader2 size={48} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
+            </div>
+          ) : currentUser ? (
+            getDashboard()
+          ) : (
+            <LandingPage />
+          )
+        } />
         <Route path="courses" element={<CourseList />} />
         <Route path="courses/:id" element={<CourseDetail />} />
         <Route path="teachers" element={<TeacherList />} />

@@ -34,9 +34,24 @@ api.interceptors.response.use(
   (error) => {
     // Handle 401 Unauthorized - Token expired or invalid
     if (error.response?.status === 401) {
+      const isGetRequest = error.config?.method?.toLowerCase() === 'get';
+      
+      // For GET requests, allow guest mode - don't redirect
+      if (isGetRequest) {
+        // Just remove invalid token, but don't redirect
+        localStorage.removeItem('token');
+        // Return error so caller can handle it gracefully
+        return Promise.reject({
+          message: error.response?.data?.error || 'Authentication required',
+          status: 401,
+          data: error.response?.data,
+          isGuestMode: true,
+        });
+      }
+      
+      // For non-GET requests, redirect to login
       localStorage.removeItem('token');
       localStorage.removeItem('currentUser');
-      // Redirect to login if not already there
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }

@@ -79,10 +79,12 @@ const Navbar = () => {
         </div>
 
       <div className="sidebar-menu">
-        <Link to="/" className="nav-link" onClick={closeMobileMenu}>
-          <Home size={20} />
-          <span>Dashboard</span>
-        </Link>
+        {currentUser && (
+          <Link to="/" className="nav-link" onClick={closeMobileMenu}>
+            <Home size={20} />
+            <span>Dashboard</span>
+          </Link>
+        )}
 
         <Link to="/courses" className="nav-link" onClick={closeMobileMenu}>
           <BookOpen size={20} />

@@ -12,6 +12,11 @@
   animation: fadeIn 0.4s ease;
 }
 
+.main-content.full-width {
+  margin-left: 0;
+  padding: 0;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -28,6 +33,11 @@
     padding: 2rem 1.5rem;
     margin-left: 75px;
   }
+  
+  .main-content.full-width {
+    margin-left: 0;
+    padding: 0;
+  }
 }
 
 @media (max-width: 768px) {
@@ -36,11 +46,22 @@
     margin-left: 0;
     padding-top: 5rem; /* Add top padding for mobile menu button */
   }
+  
+  .main-content.full-width {
+    margin-left: 0;
+    padding: 0;
+    padding-top: 0;
+  }
 }
 
 @media (max-width: 480px) {
   .main-content {
     margin-left: 65px;
     padding: 1rem 0.75rem;
+  }
+  
+  .main-content.full-width {
+    margin-left: 0;
+    padding: 0;
   }
 }

@@ -190,12 +190,8 @@ const Community = () => {
 
   // Load initial posts and communities on mount and when community changes
   useEffect(() => {
-    if (currentUser) {
-      fetchInitialData();
-    } else {
-      setLoading(false);
-    }
-  }, [currentUser, selectedCommunity]);
+    fetchInitialData();
+  }, [selectedCommunity]);
 
   // Update selected post community when filter changes
   useEffect(() => {
@@ -221,10 +217,16 @@ const Community = () => {
       const [communitiesData, postsData] = await Promise.all([
         communityService.getCommunityList().catch(() => []),
         communityService.getPostFeed({
-          studentID: currentUser.role === 'student' ? currentUser.id : undefined,
-          teacherID: currentUser.role === 'teacher' ? currentUser.id : undefined,
+          studentID: currentUser?.role === 'student' ? currentUser.id : undefined,
+          teacherID: currentUser?.role === 'teacher' ? currentUser.id : undefined,
           communityID: selectedCommunity || undefined,
           loadBlock: 1
+        }).catch((err) => {
+          // Handle guest mode - return empty array if unauthorized
+          if (err.isGuestMode) {
+            return { data: [], pagination: { hasNextPage: false } };
+          }
+          throw err;
         })
       ]);
 
@@ -284,16 +286,22 @@ const Community = () => {
 
   // Load more posts for infinite scroll
   const loadMorePosts = useCallback(async () => {
-    if (loadingMore || !hasMorePosts || !currentUser) return;
+    if (loadingMore || !hasMorePosts) return;
 
     try {
       setLoadingMore(true);
       const nextPage = currentPage + 1;
       const postsData = await communityService.getPostFeed({
-        studentID: currentUser.role === 'student' ? currentUser.id : undefined,
-        teacherID: currentUser.role === 'teacher' ? currentUser.id : undefined,
+        studentID: currentUser?.role === 'student' ? currentUser.id : undefined,
+        teacherID: currentUser?.role === 'teacher' ? currentUser.id : undefined,
         communityID: selectedCommunity || undefined,
         loadBlock: nextPage
+      }).catch((err) => {
+        // Handle guest mode
+        if (err.isGuestMode) {
+          return { data: [], pagination: { hasNextPage: false } };
+        }
+        throw err;
       });
       
       // Handle response format
@@ -377,7 +385,11 @@ const Community = () => {
 
   const handleCreatePost = async (e) => {
     e.preventDefault();
-    if (!newPostContent.trim() || !currentUser) return;
+    if (!newPostContent.trim()) return;
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
 
     // Students and teachers can create posts
     if (currentUser.role !== 'student' && currentUser.role !== 'teacher') {
@@ -422,7 +434,10 @@ const Community = () => {
   };
 
   const handleLike = async (postId, isLiked) => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
     
     // Admin cannot like posts
     if (isAdmin) return;
@@ -456,7 +471,11 @@ const Community = () => {
   };
 
   const handleSavePost = async (postId, isSaved) => {
-    if (!currentUser || (currentUser.role !== 'student' && currentUser.role !== 'teacher')) return;
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+    if (currentUser.role !== 'student' && currentUser.role !== 'teacher') return;
     
     // Admin cannot save posts
     if (isAdmin) return;
@@ -556,7 +575,12 @@ const Community = () => {
 
   const handleAddComment = async (postId) => {
     const commentText = newComment[postId];
-    if (!commentText?.trim() || !currentUser || (currentUser.role !== 'student' && currentUser.role !== 'teacher')) return;
+    if (!commentText?.trim()) return;
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+    if (currentUser.role !== 'student' && currentUser.role !== 'teacher') return;
     
     // Admin cannot add comments
     if (isAdmin) return;
