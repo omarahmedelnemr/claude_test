@@ -5,6 +5,7 @@ import blogService from '../../services/blogService';
 import { Calendar, Eye, Heart, Loader2, MessageCircle, Plus, Trash2, Shield, Flag, AlertTriangle, CheckCircle, X, Search } from 'lucide-react';
 import Pagination from '../../components/Common/Pagination';
 import api from '../../services/api';
+import SEO from '../../components/SEO/SEO';
 import './BlogList.css';
 import '../Admin/AdminDashboard.css';
 
@@ -358,8 +359,24 @@ const BlogList = () => {
     }
   };
 
+  // Get current search and category for SEO
+  const currentSearch = searchParams.get('search') || '';
+  const currentCategory = categories.find(cat => cat.id === selectedCategory);
+  const categoryName = currentCategory?.category || currentCategory?.en_category || currentCategory?.mal_category || '';
+
   return (
     <div className="container">
+      <SEO
+        title={currentSearch ? `Search: ${currentSearch} - Blog Articles` : categoryName ? `${categoryName} Articles` : 'Blog Articles'}
+        description={currentSearch 
+          ? `Search results for "${currentSearch}" in our educational blog. Find articles, insights, and knowledge from expert teachers.`
+          : categoryName
+          ? `Browse ${categoryName} articles from our expert teachers. Educational insights, tips, and knowledge sharing.`
+          : 'Browse our educational blog articles. Insights and knowledge from expert teachers on various topics and subjects.'}
+        keywords={`blog, articles, education, ${categoryName ? categoryName + ', ' : ''}${currentSearch ? currentSearch + ', ' : ''}teaching, learning, educational insights`}
+        url={`/blog${currentSearch ? `?search=${encodeURIComponent(currentSearch)}` : ''}${selectedCategory !== 'all' ? `${currentSearch ? '&' : '?'}category=${selectedCategory}` : ''}`}
+        type="website"
+      />
       {/* Admin moderation toast */}
       {modToast && (
         <div className={`ad-toast ${modToast.type === 'success' ? 'ad-toast--ok' : 'ad-toast--err'}`} style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999 }}>

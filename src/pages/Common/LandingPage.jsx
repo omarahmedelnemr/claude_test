@@ -5,13 +5,39 @@ import {
   ArrowRight, CheckCircle2, TrendingUp, ChevronRight
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import SEO from '../../components/SEO/SEO';
 import './LandingPage.css';
 
 const LandingPage = () => {
   const { currentUser } = useAuth();
 
+  const baseUrl = import.meta.env.VITE_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+
+  // Structured data for organization
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'EducationalOrganization',
+    name: 'Ta3afi Education',
+    description: 'A comprehensive online learning platform connecting students, teachers, and parents. Browse courses, learn from expert teachers, and track your progress.',
+    url: baseUrl,
+    logo: `${baseUrl}/Logo Vertical.png`,
+    sameAs: [],
+    contactPoint: {
+      '@type': 'ContactPoint',
+      contactType: 'Customer Service',
+    },
+  };
+
   return (
     <div className="lp">
+      <SEO
+        title="Ta3afi Education - Online Learning Platform"
+        description="Ta3afi Education is a comprehensive online learning platform connecting students, teachers, and parents. Live classes, recorded lectures, assignments, and real-time feedback — all in one platform built for modern education."
+        keywords="online education, e-learning, courses, teachers, students, online learning platform, education technology, live classes, recorded lectures, assignments, parent portal"
+        url="/"
+        type="website"
+        structuredData={structuredData}
+      />
 
       {/* ── Nav ── */}
       <nav className="lp-nav">

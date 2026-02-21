@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import blogService from '../../services/blogService';
 import { Calendar, Eye, Heart, ArrowLeft, Loader2, MessageCircle, Send, Edit, Trash2, Shield, Flag, AlertTriangle, CheckCircle } from 'lucide-react';
 import api from '../../services/api';
+import SEO from '../../components/SEO/SEO';
 import './BlogDetail.css';
 import '../Admin/AdminDashboard.css';
 
@@ -324,8 +325,64 @@ const BlogDetail = () => {
 
   const defaultAvatar = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%236366f1'/%3E%3Ccircle cx='20' cy='15' r='7' fill='white'/%3E%3Cellipse cx='20' cy='33' rx='12' ry='9' fill='white'/%3E%3C/svg%3E`;
 
+  // Prepare SEO data
+  const articleTitle = article?.title || 'Article';
+  const articleDescription = article?.mainText 
+    ? article.mainText.replace(/<[^>]*>/g, '').substring(0, 160) + '...'
+    : article?.excerpt || article?.content || 'Read this educational article on Ta3afi Education platform.';
+  const articleImage = article?.coverImage || article?.image || '/Logo Vertical.png';
+  const articleDate = article?.date || article?.createdAt;
+  const articleModified = article?.updatedAt || articleDate;
+  const authorName = article?.teacherName || article?.teacher?.name || article?.author?.name || 'Ta3afi Teacher';
+  const categoryName = article?.category?.name || article?.category || '';
+  const baseUrl = import.meta.env.VITE_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+
+  // Structured data for article
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: articleTitle,
+    description: articleDescription,
+    image: articleImage.startsWith('http') ? articleImage : `${baseUrl}${articleImage}`,
+    datePublished: articleDate,
+    dateModified: articleModified,
+    author: {
+      '@type': 'Person',
+      name: authorName,
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Ta3afi Education',
+      logo: {
+        '@type': 'ImageObject',
+        url: `${baseUrl}/Logo Vertical.png`,
+      },
+    },
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': `${baseUrl}/blog/${id}`,
+    },
+    ...(categoryName && { articleSection: categoryName }),
+  };
+
   return (
     <div className="container blog-detail-page">
+      <SEO
+        title={articleTitle}
+        description={articleDescription}
+        keywords={`${categoryName ? categoryName + ', ' : ''}education, article, blog, ${authorName}, teaching, learning`}
+        image={articleImage}
+        url={`/blog/${id}`}
+        type="article"
+        article={{
+          author: authorName,
+          publishedTime: articleDate,
+          modifiedTime: articleModified,
+          section: categoryName,
+          tags: categoryName ? [categoryName] : [],
+        }}
+        structuredData={structuredData}
+      />
       {/* Moderation toast */}
       {modToast && (
         <div className={`ad-toast ${modToast.type === 'success' ? 'ad-toast--ok' : 'ad-toast--err'}`} style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999 }}>

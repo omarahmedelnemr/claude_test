@@ -8,6 +8,7 @@ import ReportPost from '../../components/Common/ReportPost';
 import { Heart, MessageCircle, Send, Loader, AlertCircle, Bookmark, BookmarkCheck, X, Flag, MoreVertical, Edit2, Save, Trash2, Shield, AlertTriangle, CheckCircle, Settings, Plus } from 'lucide-react';
 import api from '../../services/api';
 import { useNavigate } from 'react-router-dom';
+import SEO from '../../components/SEO/SEO';
 import './Community.css';
 import '../Admin/AdminDashboard.css';
 
@@ -1042,8 +1043,20 @@ const Community = () => {
 
   const defaultAvatar = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%236366f1'/%3E%3Ccircle cx='20' cy='15' r='7' fill='white'/%3E%3Cellipse cx='20' cy='33' rx='12' ry='9' fill='white'/%3E%3C/svg%3E`;
 
+  // SEO data
+  const selectedCommunityName = communities.find(c => c.id === selectedCommunity)?.name || '';
+
   return (
     <div className="container community-page">
+      <SEO
+        title={selectedCommunityName ? `${selectedCommunityName} Community` : 'Community Forum'}
+        description={selectedCommunityName 
+          ? `Join the ${selectedCommunityName} community. Connect, share, and learn together with students and teachers.`
+          : 'Join our educational community forum. Connect with students and teachers, share resources, ask questions, and discuss topics in a moderated space built for education.'}
+        keywords={`community, forum, ${selectedCommunityName ? selectedCommunityName + ', ' : ''}discussion, education, students, teachers, learning community, educational forum`}
+        url={`/community${selectedCommunity ? `?community=${selectedCommunity}` : ''}`}
+        type="website"
+      />
       {/* Admin moderation toast */}
       {modToast && (
         <div className={`ad-toast ${modToast.type === 'success' ? 'ad-toast--ok' : 'ad-toast--err'}`} style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999 }}>

@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import qaService from '../../services/qaService';
 import { Search, ThumbsUp, ChevronDown, ChevronUp, MessageSquare, Send, X, Loader2, AlertCircle, Trash2 } from 'lucide-react';
+import SEO from '../../components/SEO/SEO';
 import './QASection.css';
 
 const QASection = () => {
@@ -316,7 +317,21 @@ const QASection = () => {
     return true;
   });
 
+  // SEO data
+  const currentSearch = searchParams.get('search') || '';
+  const currentStatus = searchParams.get('status') || 'all';
+
   return (
+    <>
+      <SEO
+        title={currentSearch ? `Search: ${currentSearch} - Q&A` : statusFilter !== 'all' ? `${statusFilter === 'answered' ? 'Answered' : 'Pending'} Questions` : 'Q&A Section'}
+        description={currentSearch 
+          ? `Search results for "${currentSearch}" in our Q&A section. Find answers to common questions from students and teachers.`
+          : 'Browse questions and answers from our educational community. Students ask questions, and expert teachers provide detailed answers.'}
+        keywords={`Q&A, questions, answers, ${currentSearch ? currentSearch + ', ' : ''}education, help, FAQ, student questions, teacher answers`}
+        url={`/qa${currentSearch ? `?search=${encodeURIComponent(currentSearch)}` : ''}${statusFilter !== 'all' ? `${currentSearch ? '&' : '?'}status=${statusFilter}` : ''}`}
+        type="website"
+      />
     <div className="container qa-page">
       <div className="page-header">
         <h1>Questions & Answers</h1>
@@ -644,6 +659,7 @@ const QASection = () => {
         </>
       )}
     </div>
+    </>
   );
 };
 

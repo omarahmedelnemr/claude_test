@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import courseService from '../../services/courseService';
 import { Clock, Users as UsersIcon, BarChart, Star, BookOpen, Loader2, Settings } from 'lucide-react';
+import SEO from '../../components/SEO/SEO';
 import './CourseDetail.css';
 
 const CourseDetail = () => {
@@ -120,8 +121,53 @@ const CourseDetail = () => {
   const isParent = currentUser?.role === 'parent';
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'supervisor';
 
+  // SEO data
+  const courseTitle = course?.title || 'Course';
+  const courseDescription = course?.description || 'Learn from expert teachers with structured lessons, video lectures, and interactive assignments.';
+  const courseImage = course?.thumbnailUrl || course?.thumbnail || '/Logo Vertical.png';
+  const teacherName = teacher?.name || course?.teacher?.name || 'Expert Teacher';
+  const baseUrl = import.meta.env.VITE_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+
+  // Structured data for course
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'Course',
+    name: courseTitle,
+    description: courseDescription,
+    image: courseImage.startsWith('http') ? courseImage : `${baseUrl}${courseImage}`,
+    provider: {
+      '@type': 'Organization',
+      name: 'Ta3afi Education',
+      logo: {
+        '@type': 'ImageObject',
+        url: `${baseUrl}/Logo Vertical.png`,
+      },
+    },
+    ...(teacher && {
+      instructor: {
+        '@type': 'Person',
+        name: teacherName,
+      },
+    }),
+    ...(course.subject && { courseCode: course.subject }),
+    ...(course.enrolledCount !== undefined && { aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: course.starRate || 0,
+      ratingCount: course.enrolledCount,
+    }}),
+  };
+
   return (
     <div className="course-detail-page">
+      <SEO
+        title={courseTitle}
+        description={courseDescription}
+        keywords={`${course.subject ? course.subject + ', ' : ''}course, online course, education, ${teacherName}, e-learning, teaching`}
+        image={courseImage}
+        url={`/courses/${id}`}
+        type="website"
+        structuredData={structuredData}
+      />
       <div className="container">
         <div className="course-header-section">
           <div className="course-header-content">

@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import courseService from '../../services/courseService';
 import { Search, Loader2 } from 'lucide-react';
 import Pagination from '../../components/Common/Pagination';
+import SEO from '../../components/SEO/SEO';
 import './CourseList.css';
 
 const CourseList = () => {
@@ -143,8 +144,23 @@ const CourseList = () => {
     );
   }
 
+  // SEO data
+  const currentSearch = searchParams.get('search') || '';
+  const currentSubject = subjects.find(s => s === selectedSubject && s !== 'all');
+
   return (
     <div className="container">
+      <SEO
+        title={currentSearch ? `Search: ${currentSearch} - Courses` : currentSubject ? `${currentSubject} Courses` : 'Browse Courses'}
+        description={currentSearch 
+          ? `Search results for "${currentSearch}" courses. Find online courses taught by expert teachers on Ta3afi Education platform.`
+          : currentSubject
+          ? `Browse ${currentSubject} courses. Learn from expert teachers with structured lessons, videos, and assignments.`
+          : 'Browse our comprehensive catalog of online courses. Learn from expert teachers with structured lessons, video lectures, and interactive assignments.'}
+        keywords={`courses, online courses, ${currentSubject ? currentSubject + ', ' : ''}${currentSearch ? currentSearch + ', ' : ''}e-learning, education, online learning, teaching`}
+        url={`/courses${currentSearch ? `?search=${encodeURIComponent(currentSearch)}` : ''}${selectedSubject !== 'all' ? `${currentSearch ? '&' : '?'}subject=${selectedSubject}` : ''}`}
+        type="website"
+      />
       <div className="page-header">
         <h1>Explore Courses</h1>
         <p>

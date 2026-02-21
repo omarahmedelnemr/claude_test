@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, Star, ChevronLeft, ChevronRight, ArrowUpDown, Calendar, User } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import appointmentService from '../../services/appointmentService';
+import SEO from '../../components/SEO/SEO';
 import './TeacherList.css';
 
 const TeacherList = () => {
@@ -150,7 +151,20 @@ const TeacherList = () => {
         return stars;
     };
 
+    // SEO data
+    const currentSearch = searchParams.get('search') || '';
+
     return (
+      <>
+        <SEO
+          title={currentSearch ? `Search: ${currentSearch} - Teachers` : 'Expert Teachers'}
+          description={currentSearch 
+            ? `Search results for "${currentSearch}" teachers. Find qualified and experienced teachers for online courses and tutoring.`
+            : 'Browse our directory of expert teachers. Find qualified educators for online courses, tutoring sessions, and personalized learning.'}
+          keywords={`teachers, ${currentSearch ? currentSearch + ', ' : ''}educators, online teachers, tutors, teaching, education, expert instructors`}
+          url={`/teachers${currentSearch ? `?search=${encodeURIComponent(currentSearch)}` : ''}`}
+          type="website"
+        />
         <div className="container teacher-list-page">
             <div className="page-header">
                 <div>
@@ -259,6 +273,7 @@ const TeacherList = () => {
                 </>
             )}
         </div>
+      </>
     );
 };
 

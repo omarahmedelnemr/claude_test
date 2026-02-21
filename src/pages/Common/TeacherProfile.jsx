@@ -4,6 +4,7 @@ import { Star, BookOpen, Calendar, ArrowLeft, Award, Briefcase, GraduationCap, C
 import { useAuth } from '../../contexts/AuthContext';
 import courseService from '../../services/courseService';
 import appointmentService from '../../services/appointmentService';
+import SEO from '../../components/SEO/SEO';
 import './TeacherProfile.css';
 
 const TeacherProfile = () => {
@@ -73,8 +74,49 @@ const TeacherProfile = () => {
     const experience = profile.experince || [];
     const education = profile.education || [];
 
+    // SEO data
+    const teacherName = profile?.name || 'Teacher';
+    const teacherTitle = profile?.title || '';
+    const teacherBio = profile?.bio || profile?.description || `Learn from ${teacherName}, an experienced educator on Ta3afi Education platform.`;
+    const teacherImage = profile?.profileImage || '/default-avatar.png';
+    const baseUrl = import.meta.env.VITE_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+
+    // Structured data for person/teacher
+    const structuredData = {
+      '@context': 'https://schema.org',
+      '@type': 'Person',
+      name: teacherName,
+      jobTitle: teacherTitle || 'Teacher',
+      description: teacherBio,
+      image: teacherImage.startsWith('http') ? teacherImage : `${baseUrl}${teacherImage}`,
+      ...(profile.starRate && {
+        aggregateRating: {
+          '@type': 'AggregateRating',
+          ratingValue: profile.starRate,
+          ratingCount: reviews.length,
+        },
+      }),
+      ...(tags.length > 0 && {
+        knowsAbout: tags.map(tag => tag.name || tag),
+      }),
+    };
+
     return (
         <div className="container tp-page">
+            <SEO
+              title={`${teacherName}${teacherTitle ? ' - ' + teacherTitle : ''} - Teacher Profile`}
+              description={teacherBio}
+              keywords={`${teacherName}, ${teacherTitle ? teacherTitle + ', ' : ''}teacher, educator, ${tags.map(t => t.name || t).join(', ')}, online teaching, tutor`}
+              image={teacherImage}
+              url={`/teachers/${id}`}
+              type="profile"
+              profile={{
+                firstName: teacherName.split(' ')[0],
+                lastName: teacherName.split(' ').slice(1).join(' '),
+                username: teacherName.toLowerCase().replace(/\s+/g, ''),
+              }}
+              structuredData={structuredData}
+            />
             <button className="back-btn" onClick={() => navigate('/teachers')}>
                 <ArrowLeft size={18} /> Back to Teachers
             </button>

@@ -1,0 +1,39 @@
+# robots.txt for Ta3afi Education Platform
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /profile
+Disallow: /notifications
+Disallow: /messages
+Disallow: /appointments
+Disallow: /enrolled-courses
+Disallow: /checkout/
+Disallow: /course-player/
+Disallow: /my-courses
+Disallow: /courses/create
+Disallow: /courses/edit/
+Disallow: /courses/*/manage
+Disallow: /blog/create
+Disallow: /blog/edit/
+Disallow: /analytics
+Disallow: /parent-invitations
+Disallow: /pending-invitations
+Disallow: /connected-students
+Disallow: /saved-posts
+
+# Allow public pages
+Allow: /courses
+Allow: /courses/*
+Allow: /teachers
+Allow: /teachers/*
+Allow: /blog
+Allow: /blog/*
+Allow: /community
+Allow: /qa
+Allow: /
+
+# Sitemap location
+Sitemap: https://ta3afi.education/sitemap.xml
+
